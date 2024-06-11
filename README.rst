@@ -1,15 +1,8 @@
-=======================
-python-package-template
-=======================
-This is a template repository that can be used to quickly create a python package project.
-
-=========================
-Features of this Template
-=========================
-* Machine Setup
-* Virtual Environment Setup (Poetry)
-* PyPi Publishing
-* Sphinx Documentation
+=============================
+Automation Mojo - RPC Package
+=============================
+This package will provide RPC support that explicitly declares objects passed by reference and automatically provides
+callback threading in order to ensure the stability of automation.
 
 ========================
 How to Use This Template
