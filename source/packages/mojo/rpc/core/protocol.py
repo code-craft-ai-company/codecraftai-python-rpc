@@ -1,8 +1,20 @@
 
+import struct
+
+from uuid import uuid4
+
+
+FMT_MSG_SIZE = "!Q"
+FMT_MSG_UINT = "!I"
+FMT_MSG_UUID = "s" * len(str(uuid4()))
+
 
 MSG_TYPE_REQUEST = 1
 MSG_TYPE_REPLY = 2
 MSG_TYPE_EXCEPTION = 3
+
+
+REPLY_CODE_PONG = 1
 
 
 REQ_CODE_PING = 1
@@ -14,77 +26,196 @@ REQ_CODE_SETATTR = 6
 REQ_CODE_CALL = 7
 
 
-class RequestPing:
 
-    __slots__ = ("TYPE", "CODE")
+class MessageBase:
 
-    TYPE = MSG_TYPE_REQUEST
-    CODE = REQ_CODE_PING
+    PREFIX_SIZE = 4 + 4 + len(FMT_MSG_UUID)
 
+    def pack_prefix(self, buffer) -> bytes:
 
-class RequestClose:
+        ppos = 0
+        
+        struct.pack_into(FMT_MSG_UINT, buffer, ppos, self.mtype)
+        ppos += 4
 
-    __slots__ = ("TYPE", "CODE")
+        struct.pack_into(FMT_MSG_UINT, buffer, ppos, self.mcode)
+        ppos += 4
 
-    TYPE = MSG_TYPE_REQUEST
-    CODE = REQ_CODE_CLOSE
+        struct.pack_into(FMT_MSG_UUID, buffer, ppos, self.origin)
 
-
-class RequestGetService:
-
-    __slots__ = ("TYPE", "CODE")
-
-    TYPE = MSG_TYPE_REQUEST
-    CODE = REQ_CODE_GETSERVICE
+        return ppos
 
 
-class RequestAttrDel:
 
-    __slots__ = ("TYPE", "CODE", "attrname")
+class ReplyPong(MessageBase):
 
-    TYPE = MSG_TYPE_REQUEST
-    CODE = REQ_CODE_DELATTR
+    __slots__ = ("mtype", "mcode", "origin")
+    
+    
 
-    def __init__(self, attrname: str) -> None:
+    def __init__(self, origin: str):
+        self.mtype = MSG_TYPE_REPLY
+        self.mcode = REPLY_CODE_PONG
+        self.origin = origin
+        return
+    
+    def pack(self) -> bytes:
+
+        buffer = bytearray(self.PREFIX_SIZE)
+
+        ppos = self.pack_prefix(buffer)
+
+        return buffer
+
+
+
+class RequestPing(MessageBase):
+
+    __slots__ = ("mtype", "mcode", "origin")
+    
+    def __init__(self, origin: str):
+        self.mtype = MSG_TYPE_REQUEST
+        self.mcode = REQ_CODE_PING
+        self.origin = origin
+        return
+    
+    def pack(self) -> bytes:
+
+        buffer = bytearray(self.PREFIX_SIZE)
+
+        ppos = self.pack_prefix(buffer)
+
+        return buffer
+
+class RequestClose(MessageBase):
+
+    __slots__ = ("mtype", "mcode", "origin")
+
+    PREFIX_SIZE = 4 + 4 + len(FMT_MSG_UUID)
+
+    def __init__(self, origin: str):
+        self.mtype = MSG_TYPE_REQUEST
+        self.mcode = REQ_CODE_CLOSE
+        self.origin = origin
+        return
+    
+    def pack(self) -> bytes:
+
+        buffer = bytearray(self.PREFIX_SIZE)
+
+        ppos = self.pack_prefix(buffer)
+
+        return buffer
+
+
+class RequestGetService(MessageBase):
+
+    __slots__ = ("mtype", "mcode", "origin")
+
+    PREFIX_SIZE = 4 + 4 + len(FMT_MSG_UUID)
+
+    def __init__(self, origin: str):
+        self.mtype = MSG_TYPE_REQUEST
+        self.mcode = REQ_CODE_GETSERVICE
+        self.origin = origin
+        return
+    
+    def pack(self) -> bytes:
+
+        buffer = bytearray(self.PREFIX_SIZE)
+
+        ppos = self.pack_prefix(buffer)
+
+        return buffer
+
+
+class RequestAttrDel(MessageBase):
+
+    __slots__ = ("mtype", "mcode", "origin", "attrname")
+
+    PREFIX_SIZE = 4 + 4 + len(FMT_MSG_UUID)
+
+    def __init__(self, origin: str, attrname: str):
+        self.mtype = MSG_TYPE_REQUEST
+        self.mcode = REQ_CODE_DELATTR
+        self.origin = origin
         self.attrname = attrname
         return
+    
+    def pack(self) -> bytes:
+
+        buffer = bytearray(self.PREFIX_SIZE)
+
+        ppos = self.pack_prefix(buffer)
+
+        return buffer
 
 
-class RequestAttrGet:
+class RequestAttrGet(MessageBase):
 
-    __slots__ = ("TYPE", "CODE", "attrname")
+    __slots__ = ("mtype", "mcode", "origin", "attrname")
 
-    TYPE = MSG_TYPE_REQUEST
-    CODE = REQ_CODE_GETATTR
+    PREFIX_SIZE = 4 + 4 + len(FMT_MSG_UUID)
 
-    def __init__(self, attrname: str) -> None:
+    def __init__(self, origin: str, attrname: str):
+        self.mtype = MSG_TYPE_REQUEST
+        self.mcode = REQ_CODE_GETATTR
+        self.origin = origin
         self.attrname = attrname
         return
+    
+    def pack(self) -> bytes:
+
+        buffer = bytearray(self.PREFIX_SIZE)
+
+        ppos = self.pack_prefix(buffer)
+
+        return buffer
 
 
-class RequestAttrSet:
+class RequestAttrSet(MessageBase):
 
-    __slots__ = ("TYPE", "CODE", "attrname", "attrval")
+    __slots__ = ("mtype", "mcode", "origin", "attrname", "attrval")
 
-    TYPE = MSG_TYPE_REQUEST
-    CODE = REQ_CODE_SETATTR
+    PREFIX_SIZE = 4 + 4 + len(FMT_MSG_UUID)
 
-    def __init__(self, attrname: str, attrval: object) -> None:
+    def __init__(self, origin: str, attrname: str, attrval: object):
+        self.mtype = MSG_TYPE_REQUEST
+        self.mcode = REQ_CODE_SETATTR
+        self.origin = origin
         self.attrname = attrname
         self.attrval = attrval
         return
+    
+    def pack(self) -> bytes:
+
+        buffer = bytearray(self.PREFIX_SIZE)
+
+        ppos = self.pack_prefix(buffer)
+
+        return buffer
 
 
-class RequestCall:
+class RequestCall(MessageBase):
 
-    __slots__ = ("TYPE", "CODE", "callable_name", "args", "kwargs")
+    __slots__ = ("mtype", "mcode", "origin", "callable_name", "args", "kwargs")
 
-    TYPE = MSG_TYPE_REQUEST
-    CODE = REQ_CODE_CALL
+    PREFIX_SIZE = 4 + 4 + len(FMT_MSG_UUID)
 
-    def __init__(self, callable_name: str, args: list, kwargs: dict) -> None:
+    def __init__(self, origin: str, callable_name: str, args: list, kwargs: dict):
+        self.mtype = MSG_TYPE_REQUEST
+        self.mcode = REQ_CODE_CALL
+        self.origin = origin
         self.callable_name = callable_name
         self.args = args
         self.kwargs = kwargs
         return
+    
+    def pack(self) -> bytes:
+
+        buffer = bytearray(self.PREFIX_SIZE)
+
+        ppos = self.pack_prefix(buffer)
+
+        return buffer
 

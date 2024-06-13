@@ -24,7 +24,7 @@ from io import BytesIO
 BUFFER_SIZE = 4096
 
 
-class DuplexSocketSteam:
+class DuplexSocketIO:
 
 
     def __init__(self, sock: socket.socket, addr: Tuple[str, int]):

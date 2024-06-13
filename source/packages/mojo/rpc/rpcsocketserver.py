@@ -5,14 +5,17 @@ from typing import Generic, Optional, Tuple, TypeVar, Type
 import socket
 
 
+from uuid import uuid4
+
+
 ServiceProtocol = TypeVar("ServiceProtocol")
 
 
 
 from mojo.rpc.core.protocol import MessageGetRoot
 
-from mojo.rpc.core.duplexsocketstream import DuplexSocketSteam
-from mojo.rpc.core.duplexserversink import DuplexServerSink
+from mojo.rpc.core.duplexsocketio import DuplexSocketIO
+from mojo.rpc.core.duplexserversession import DuplexServerSession
 
 
 
@@ -30,6 +33,8 @@ class MojoRpcServer(Generic[ServiceProtocol]):
         self.backlog = backlog
 
         self._listen_sock = None
+
+        self._sessions = {}
 
         return
 
@@ -52,9 +57,15 @@ class MojoRpcServer(Generic[ServiceProtocol]):
 
             client_sock, client_addr = self._listen_sock.accept()
 
-            stream = DuplexSocketSteam(client_sock, client_addr)
+            stream = DuplexSocketIO(client_sock, client_addr)
 
-            sink = DuplexServerSink(stream)
+            session_id = uuid4()
+
+            sink = DuplexServerSession(stream)
+
+            self._sessions[session_id] = (client_addr, sink)
+
+            sink.start()
 
 
         return
