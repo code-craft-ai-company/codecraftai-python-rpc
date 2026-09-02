@@ -1,3 +1,15 @@
+"""
+.. module:: duplexclientsession
+    :platform: Darwin, Linux, Unix, Windows
+    :synopsis: Module that contains the DuplexClientSession which owns the threads for one client connection.
+
+.. moduleauthor:: Myron Walker <myron.walker@gmail.com>
+"""
+
+__author__ = "Myron Walker"
+__copyright__ = "Copyright 2025, Code Craft AI LLC"
+__credits__ = []
+
 
 from typing import Optional
 
@@ -8,12 +20,12 @@ import threading
 from uuid import uuid4
 
 
-from mojo.rpc.core.looper import Looper
-from mojo.rpc.core.looperpool import LooperPool
-from mojo.rpc.core.looperqueue import LooperQueue
+from ccai.rpc.core.looper import Looper
+from ccai.rpc.core.looperpool import LooperPool
+from ccai.rpc.core.looperqueue import LooperQueue
 
 
-from mojo.rpc.core.duplexsocketio import DuplexSocketIO
+from ccai.rpc.core.duplexsocketio import DuplexSocketIO
 
 
 DEFAULT_RESPONSE_TIMEOUT = 60

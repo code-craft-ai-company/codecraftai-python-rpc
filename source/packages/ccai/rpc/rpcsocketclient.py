@@ -1,3 +1,14 @@
+"""
+.. module:: rpcsocketclient
+    :platform: Darwin, Linux, Unix, Windows
+    :synopsis: Module that contains the RpcSocketClient entry point used to connect to a remote service.
+
+.. moduleauthor:: Myron Walker <myron.walker@gmail.com>
+"""
+
+__author__ = "Myron Walker"
+__copyright__ = "Copyright 2025, Code Craft AI LLC"
+__credits__ = []
 
 
 from typing import Generic, Tuple, TypeVar, Type
@@ -7,10 +18,10 @@ from typing import Generic, Tuple, TypeVar, Type
 ServiceProtocol = TypeVar("ServiceProtocol")
 
 
-from mojo.rpc.core.protocol import RequestGetService
+from ccai.rpc.core.protocol import RequestGetService
 
 
-class MojoRpcClient:
+class RpcSocketClient:
     """
     """
 

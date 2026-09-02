@@ -8,7 +8,7 @@
 """
 
 __author__ = "Myron Walker"
-__copyright__ = "Copyright 2024, Myron W Walker"
+__copyright__ = "Copyright 2025, Code Craft AI LLC"
 __credits__ = []
 
 
@@ -16,9 +16,9 @@ from typing import Optional
 
 from threading import Event, Thread
 
-from mojo.errors.exceptions import NotOverloadedError, LooperError
+from ccai.errors.exceptions import AbstractMethodError, LooperError
 
-from mojo.rpc.core.looperqueue import LooperQueue, LooperQueueShutdown
+from ccai.rpc.core.looperqueue import LooperQueue, LooperQueueShutdown
 
 class Looper:
     """
@@ -45,7 +45,7 @@ class Looper:
         """
             Method that is overloaded by derived classes in order to implement a work loop.
         """
-        raise NotOverloadedError("Looper: _loop must be overloaded by derived classes.") from None
+        raise AbstractMethodError("Looper: _loop must be overloaded by derived classes.") from None
 
 
     def start(self):

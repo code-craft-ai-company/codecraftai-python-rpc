@@ -9,14 +9,14 @@
 """
 
 __author__ = "Myron Walker"
-__copyright__ = "Copyright 2024, Myron W Walker"
+__copyright__ = "Copyright 2025, Code Craft AI LLC"
 __credits__ = []
 
 
 
 from threading import RLock, Semaphore
 
-from mojo.errors.exceptions import LooperError
+from ccai.errors.exceptions import LooperError
 
 
 class LooperQueueShutdown:

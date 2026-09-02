@@ -1,3 +1,15 @@
+"""
+.. module:: rpcsocketserver
+    :platform: Darwin, Linux, Unix, Windows
+    :synopsis: Module that contains the RpcSocketServer entry point used to expose a service over a socket.
+
+.. moduleauthor:: Myron Walker <myron.walker@gmail.com>
+"""
+
+__author__ = "Myron Walker"
+__copyright__ = "Copyright 2025, Code Craft AI LLC"
+__credits__ = []
+
 
 from typing import Generic, Optional, Tuple, TypeVar, Type
 
@@ -12,14 +24,14 @@ ServiceProtocol = TypeVar("ServiceProtocol")
 
 
 
-from mojo.rpc.core.protocol import MessageGetRoot
+from ccai.rpc.core.protocol import RequestGetService
 
-from mojo.rpc.core.duplexsocketio import DuplexSocketIO
-from mojo.rpc.core.duplexserversession import DuplexServerSession
+from ccai.rpc.core.duplexsocketio import DuplexSocketIO
+from ccai.rpc.core.duplexserversession import DuplexServerSession
 
 
 
-class MojoRpcServer(Generic[ServiceProtocol]):
+class RpcSocketServer(Generic[ServiceProtocol]):
     """
     """
 

@@ -1,14 +1,14 @@
 """
-.. module:: duplexsocketstream
+.. module:: duplexsocketio
     :platform: Darwin, Linux, Unix, Windows
-    :synopsis: Module that contains a DuplexSocketStream object which wraps a socket and provides message writing to and
+    :synopsis: Module that contains a DuplexSocketIO object which wraps a socket and provides message writing to and
                reading from the socket.
 
 .. moduleauthor:: Myron Walker <myron.walker@gmail.com>
 """
 
 __author__ = "Myron Walker"
-__copyright__ = "Copyright 2024, Myron W Walker"
+__copyright__ = "Copyright 2025, Code Craft AI LLC"
 __credits__ = []
 
 

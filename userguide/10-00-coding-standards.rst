@@ -1,21 +1,12 @@
-.. _10-00-coding-standards:
+.. _10-00-coding-standards-and-patterns:
 
-*****************************
+=============================
 Coding Standards and Patterns
-*****************************
-
-**in-progress**
-
-Sections
-========
-  * `Class Variable Initialization`_
-  * `Code Optimization`_
-  * `Multiline Error Message Formation`_
-  * `Return Statements`_
-  * `InterOp and Persistance Decorators`_
+=============================
 
 Zen of Python testing
 =====================
+
 * It doesn't matter how beautiful the code is, beauty is in the eye of the beholder
 * Readability is important
 * Debuggability is paramount
@@ -24,15 +15,90 @@ Zen of Python testing
 * Flat is better than Nested
 * Sparse is better than dense
 * Explicit is better than implicit
-* Simple is better than complexed
+* Simple is better than complex
 * Bad coding patterns proliferate
 * Stability is more important than performance
 * Errors should never pass silently, unless purposefully handled and silenced
 * If the implementation is hard to explain, follow or maintain, try thinking of another way
 * If the implementation is easy to explain, follow or maintain, it may be a good idea
 
+
+Semicolons
+==========
+Do not terminate lines of code with semi-colons, and do not use semicolons to put two statemens on the same line.
+
+Functions
+=========
+* Function names should be snake case
+* All functions parameters should have type hints
+* Functions should have annotated return types
+
+Methods
+=======
+* Method names should be snake case
+* Instance methods should use 'self' as the first Argument
+* Class methods should use 'cls' as the first Argument
+* All method parameters should have type hints
+* Methods should have annotated return types
+
+
+Classes
+=======
+* Class names should be mixed case (PascalCase / CamelCase) and should not contain underscores
+* The name of the file that contains a class should match the class name but in all lowercase, with no underscores
+
+For example, a class named ``SomeClass`` should be defined in a file named ``someclass.py``.
+
+.. code-block:: python
+
+    # File: someclass.py
+
+    class SomeClass:
+        """
+            This is a documentation comment for a class.
+        """
+
+
+Default Values for Functions or Methods
+=======================================
+Mutable values should not be used as a default value for a function or method parameter.  This is because
+python creates a single instance for mutable defaults that it shares among all the callers of a method.  Using
+a mutable default value means that modifications made to the value inside the function by one call effect all
+other subsequent calls.  The following example shows how modifying a list in a function effects every call to
+the function.
+
+.. code-block:: python
+    
+    import random
+
+    def add_and_print_list(items=[]):
+       items.append(random.randint(1, 10))
+       print(items)
+       return
+    
+    add_and_print_list()
+    add_and_print_list()
+
+The second call to `add_and_print_list` will print the numbers added to the list from the first call.  This
+is because default values to callables are only created once and shared by all function users.  When you want
+to use a Mutable instance as a default value, one way to do this is to pass `None` or `...` as the default
+and then create an instance for the Mutable inside of the function, for example.
+
+.. code-block:: python
+
+    def some_function(items: List[str] = None):
+
+        if items is None:
+            items = []
+
+        # TODO: Do something with the list
+
+        return
+
+
 Class Variable Initialization
 =============================
+
 All variables must be initialized in the constructor of the class.
 
 .. code-block:: python
@@ -47,7 +113,7 @@ All variables must be initialized in the constructor of the class.
             self._c = "blahblah"
 
 This is very important for visual debuggers and tools to perform type
-inferencing and popup context menues when typing and help.  The tools will
+inferencing and popup context menues when typing and help. The tools will
 inspect the constructor to see what variables are attached to **self**.
 It also ensures that an initial value is present any time a variable is used.
 The following is **NOT** allowed:
@@ -60,23 +126,152 @@ The following is **NOT** allowed:
             self._b = 0
         
         def set_to_blah(self):
-            self._c = "blahblah"
+            self._c = "blahblah"  # No initialization in constructor
+
+
+Decision Expressions
+====================
+Shortcut 'True/False' expressions should NOT be used.  Example:
+
+.. code-block:: python
+
+    if somelist:
+        print(somelist[0])
+
+Shortcut expressions do not provide sufficient debugging information when a failure occurs.  There are
+two error conditiions that could effect the print statement, somelist could be 'None' or it could be an
+empty list.  When an expression is not-explicit error conditions get blended together.  'True/False' expressions
+for decisions must be explicit for all cases.  For example:
+
+.. code-block:: python
+
+    if somelist is not None:
+        if len(somelist) > 0:
+            print(somelist[0])
+        else:
+           errmsg = "The parameter 'somelist' should not be empty.
+           raise ValueError(errmsg)
+    else:
+        errmsg = "The parameter 'somelist' should not have been 'None'"
+        raise ValueError(errmsg)
+
+
+Decorator Usage
+===============
+Python decorators should only be used to:
+
+* Add metadata to a function or method
+
+.. code-block:: python
+
+    @priority(1)
+    def test_something():
+        return
+
+* Register a function or method with a mapping system
+
+.. code-block:: python
+
+    @app.route("/")
+    def index():
+       return
+
+The two types of decorator uses above DO NOT modify the behavior of the wrapped function.  Python decorators
+are a form of top-level code that are applied when modules are parsed and types and functions are created.
+Decorators that modify the behavior of functions such as the '@retry', are locked to a function extremely early
+and cannot be removed or parameterized in calls.  In this sense the decorator breaks the ability of the caller
+and callable to form a contract of behavior base on parameters.
+
+NOTE: Decorators that wrap functions and add behavior cannot be removed so the behavior they add cannot be removed.
+
+
+Documentation Comments
+======================
+
+Documentation comments in this project should use the sphinx syntax of documentation comments.
+
+All documentation comments for classes, functions and methods should:
+
+* Be multi-line triple quote strings
+* The description of the comment should start on the second line
+* The text for the entire documentation comment is indented 4 spaces inside of the start position of the first triple quote
+* Parameter descriptions do not need to declare a type because Type hints should be given in the function signature.
+* The 'returns' description should only contain a description, the return type should be specified by a type hint
+* The 'raises' description should be a list of exception types
+
+
+Class Example
+-------------
+
+.. code-block:: python
+
+    class SomeClass:
+        """
+            This is a documentation comment for a class.
+        """
+
+
+Function Example
+----------------
+
+.. code-block:: python
+
+    def some_function(a: int, b: str) -> str:
+        """
+            This is a test function.
+
+            :param a: The value for 'a'
+            :param b: The value for 'b'
+
+            :returns: The word 'blah' in a string.
+            :raises: ValueError
+        """
+        if a <= 0:
+            raise ValueError("'a' must be greater than 0")
+
+        return "blah"
+
+
+Method Example
+--------------
+
+.. code-block:: python
+
+    class SomeClass:
+        """
+            This is a documentation comment for a class.
+        """
+
+        def some_method(self, a: int, b: str) -> str:
+            """
+                This is a test method
+
+                :param a: The value for 'a'
+                :param b: The value for 'b'
+
+                :returns: The word 'blah' in a string.
+                :raises: ValueError
+            """
+            if a <= 0:
+                raise ValueError("'a' must be greater than 0")
+
+            return "blah"
 
 Code Optimization
 =================
 
 The desired characteristics of test code is different than that of production
-code.  Test code is often used to debug or step through scenarios and workflows
+code. Test code is often used to debug or step through scenarios and workflows
 in order to capture information about what is going on in the code that is the
-target of the tests.  Because test code is used so often in the debugger to
+target of the tests. Because test code is used so often in the debugger to
 perform investigations of product bugs and test issues, test code should only
 be optimized where there is sufficient data to show that a specific area of code
 is having a big negative impact on the performance of the test runs.
 
-The reality of distributed automation frameworks is that they spend alot of
+The reality of distributed automation frameworks is that they spend a lot of
 time in interop APIs looping on retry attempts with delays intentionally
-inserted between retries.  Code that is intentionally being delayed should
-**NOT** be the target of code optimizations.  The following is a list of
+inserted between retries. Code that is intentionally being delayed should
+**NOT** be the target of code optimizations. The following is a list of
 optimization techniques that are discouraged in the test code so the test code
 can exhibit more of the desired characteristics list above.
 
@@ -84,28 +279,22 @@ can exhibit more of the desired characteristics list above.
 * Nested Inlining Function Calls
 * Compound return statements
 
-I cannot stress enough that if poor test coding styles are used too much in a
-large code base and if the practices go on for too long.  The code will be
-difficult to work in and the productivity of the consumers of the test code
-will be greatly impacted.
-
 One Liners and Brevity Shortcuts
 --------------------------------
 
 One liners and code written with the intent of being brief are not allowed and
-or discourage in the automation code.  This is because ensuring the automation
+or discouraged in the automation code. This is because ensuring the automation
 code can be easily run and stepped through in the debugger is a primary requirement.
 Simple list comprehensions that get assigned to a local variable are ok such as:
 
 .. code-block:: python
 
-    dev_list = [ dev for dev in device_list ]
-
+    dev_list = [dev for dev in device_list]
 
 These are acceptable because you can easily see the result of the list comprehension
-in the debugger after the comprehension has run.  However, if the list comprehension
+in the debugger after the comprehension has run. However, if the list comprehension
 becomes more complexed with if statements calling functions, then you should
-break out the list creation into mutliple lines like so:
+break out the list creation into multiple lines like so:
 
 .. code-block:: python
 
@@ -113,7 +302,6 @@ break out the list creation into mutliple lines like so:
     for dev in device_list:
         if dev.deviceType == 'network/upnp':
             dev_list.append(dev)
-
 
 This is most likely a little less performant. Squeezing every last bit of performance
 out of the code is **NOT** a priority of creating test code that is easy to
@@ -123,8 +311,8 @@ Nested Inlining Function Calls
 ------------------------------
 
 An important aspect of code that is friendly to debug is that it spreads out
-statements across multiple lines of code.  By spreading out code statement such
-as function calls or index accesses across mutliple lines, we attach metadata in
+statements across multiple lines of code. By spreading out code statement such
+as function calls or index accesses across multiple lines, we attach metadata in
 the form of a line number to the statements which enables the debugger to work
 more efficiently with the statements.
 
@@ -151,13 +339,15 @@ to variables like so:
     some_function(a, b, c)
 
 By expanding the items to individual variables, you can provide a local context of the
-ordering of the variabls in the list or tuple and the variables you are expanding them
-to.  This local context or mapping of items to variable names can be easily inspected
+ordering of the variables in the list or tuple and the variables you are expanding them
+to. This local context or mapping of items to variable names can be easily inspected
 during a debug session to ensure that the variable name matches the data being assigned
 to the variable.
 
 Compound Return Statements
 --------------------------
+
+Avoid:
 
 .. code-block:: python
 
@@ -166,14 +356,12 @@ Compound Return Statements
 
 For more details about how returns should be written, see the `Return Statements`_ section.
 
-Passing Function Arguements
-===========================
-Here are some important parameter passing rules that help prevent un-expected bugs from showing
-up in large code bases when an API changes.
+Passing Function Arguments
+==========================
 
 Named Parameter Passing
 -----------------------
-If a parameter is named, always pass the parameter to the name it is being passed as.  Never pass
+If a parameter is named, always pass the parameter to the name it is being passed as. Never pass
 named parameters by position. Example:
 
 .. code-block:: python
@@ -192,14 +380,14 @@ Multiline Error Message Formation
 =================================
 
 An important part of creating great automation frameworks and tools is the sharing of
-expert knowledge between consumers of the automation framework code base.  A great way
+expert knowledge between consumers of the automation framework code base. A great way
 to implement knowledge sharing is to write code so that it provides detailed contextual
-information when errors occur.  This is important because the last person working or dealing
+information when errors occur. This is important because the last person working or dealing
 with an issue in the error handling code is working on the problem and has the best
 knowledge about the context when the error occurs and should share that knowledge with others.
 
 As part of providing well formed and detailed error reporting, we want to be able to see
-and debug the code that is creating the error messages.  When creating multi-line error
+and debug the code that is creating the error messages. When creating multi-line error
 messages, the following method is preferred.
 
 * Create a list to hold the error message lines
@@ -216,210 +404,55 @@ The code below provides an example of the building of a detailed error message t
     err_msg_lines = [
         "Failed to find expected UPNP devices after a timeout of {} seconds.".format(response_timeout)
     ]
-    err_msg_lines.append("EXPECTED: ({})".format( len(expected_devices) ))
+    err_msg_lines.append("EXPECTED: ({})".format(len(expected_devices)))
     for dkey in expected_devices:
         err_msg_lines.append("    {}:".format(dkey))
     err_msg_lines.append("")
     
-    err_msg_lines.append("MATCHING: ({})".format( len(scan_context.matching_devices) ))
+    err_msg_lines.append("MATCHING: ({})".format(len(scan_context.matching_devices)))
     for dkey in scan_context.matching_devices:
         err_msg_lines.append("    {}:".format(dkey))
     err_msg_lines.append("")
     
-    err_msg_lines.append("FOUND: ({})".format( len(scan_context.found_devices) ))
-    for dkey in scan_context.found_devices:
-        err_msg_lines.append("    {}:".format(dkey))
-    err_msg_lines.append("")
-    
-    err_msg_lines.append("MISSING: ({})".format( len(missing) ))
-    for dkey in missing:
-        err_msg_lines.append("    {}:".format(dkey))
-    err_msg_lines.append("")
+    # More data sections...
     
     err_msg = os.linesep.join(err_msg_lines)
-    raise AKitTimeoutError(err_msg) from None
-
+    raise TimeoutError(err_msg) from None
 
 Stable Property Implementations
 ===============================
-Alot of engineers like to do fancy things with properties and they often think that its ok
-to do whatever they want with properties and get as fancy as they want.  The proper use of
-property is to provide controlled access to the data members of a class.  The developement
-tools that we utilize, such as Visual Studo Code, are written with this implied behavioral
+
+The proper use of property is to provide controlled access to the data members of a class. The development
+tools that we utilize, such as Visual Studio Code, are written with this implied behavioral
 contract in mind on how properties should behave.
 
-The reality is that when we as developers break this implied contract on property behavior,
-we actually cause alot of problems for consumers of our code.  That is because visual
+When we as developers break this implied contract on property behavior,
+we actually cause a lot of problems for consumers of our code. That is because visual
 debuggers actually rely on this implied behavior in order to provide contextual information
-to the software engineer when they are running code in debug sessions.  Look at the example
-code below.
+to the software engineer when they are running code in debug sessions.
 
-.. code-block:: python
+Properties should be simple accessors to internal data and avoid:
 
-    class Blah:
-        def __init__(self):
-            self._a = 1
-            self._b = 2
-            return
-        
-        def a(self):
-            return self._a
-        
-        def b(self):
-            return self._b
-
-        def c(self):
-            val = self._a + self._b
-            return val
-
-    if __name__ == "__main__":
-        blah = Blah()
-        print("blah")   # Put Breakpoint Here
-
-When we run the code above in the debugger, we can see how the debugger responds to the code. By
-inserting a breakpoint after on the `print("blah")`, we can pause in the debugger and see how the
-debugger utilized the properties that are on the instance of object `Blah`.
-
-.. image:: /_static/images/vscode-property-previews-for-blah.jpg
-
-You can see from the image above that the debugger utilizes the implied contract with properties and
-that they are simple accessors to internal property data. The debugger runs the code in the
-property so it can show us a preview of the result.  This is shown by the fact that the 'c' property
-is showing us the result of adding `self._a + self._b` and showing a value of `3` in the debugger
-variables view.
-
-This example hints at something that developers writing python code need to rememeber. Python is a
-dynamic language.  Debuggers for dynamic languages cannot make the same assumptions that a debugger might
-be able to make for a compiled language such as C or C++.  Compiled languages store data in memory
-addresses and the variables get data directly from memory in those langauges.  In python, objects
-can change dynamically and there is no way for the debugger to know from one statement to the next
-if a property on an object still exists.  The debugger has to run the python code in a debug context
-in the python process so it can debug the code.  It updates the debugger information by dynamically
-calling python properties and operators in order to resolve the values of the variables, objects and thier
-associated properties inside the debug execution context.  This dynamic evaluation of python code in context
-is what make it possible to run commands in the interactive python console while debugging. From the
-debugger image above you see the debugger presents us with a single thread and callstack, but if we attach
-to the process in gdb we would see multiple threads.
-
-.. code-block:: text
-
-    (gdb) info threads
-    Id   Target Id                                  Frame 
-    * 1    Thread 0x7f96d066c740 (LWP 51543) "python" futex_abstimed_wait_cancelable (private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x1fd1250)
-        at ../sysdeps/nptl/futex-internal.h:320
-      2    Thread 0x7f96ceed0700 (LWP 51550) "python" 0x00007f96d0828618 in futex_abstimed_wait_cancelable (private=0, abstime=0x7f96ceecf110, clockid=0, 
-        expected=0, futex_word=0x7f96c80018e0) at ../sysdeps/nptl/futex-internal.h:320
-      3    Thread 0x7f96ce6cf700 (LWP 51552) "python" __libc_recv (flags=<optimized out>, len=1024, buf=0x7f96c000e0c0, fd=3) at ../sysdeps/unix/sysv/linux/recv.c:28
-      4    Thread 0x7f96cdece700 (LWP 51554) "python" futex_abstimed_wait_cancelable (private=0, abstime=0x0, clockid=0, expected=0, futex_word=0x7f96c40011f0)
-        at ../sysdeps/nptl/futex-internal.h:320
-      5    Thread 0x7f96cd6cd700 (LWP 51555) "python" 0x00007f96d0828618 in futex_abstimed_wait_cancelable (private=0, abstime=0x7f96cd6cc110, clockid=0, 
-        expected=0, futex_word=0x7f96b8001910) at ../sysdeps/nptl/futex-internal.h:320
-      6    Thread 0x7f96ccecc700 (LWP 51556) "python" 0x00007f96d0828618 in futex_abstimed_wait_cancelable (private=0, abstime=0x7f96ccecb000, clockid=0, 
-        expected=0, futex_word=0x7f96bc001690) at ../sysdeps/nptl/futex-internal.h:32
-
-In order to show what happens if we get too fancy with properties, lets modify the property code above so that
-it blocks on a synchronization primitive.  We setup the `c` property to intentionally block on an event gate that
-is clear and never going to be set.
-
-.. image:: /_static/images/vscode-property-preview-lockup.jpg
-
-This demonstrates what will happen to our debug sessions if we attempt to get fancy and utilize a property for
-performing a complicated operation. The debugger locks up and our debug session becomes frozen.  You can see this
-by looking at the image above.  You can see that next to the `blah` object we get a *spinner* in the UI.  If we
-attempt to step to the next statement, there is no response because the debugger is hung.  Lets look at the stack
-trace of the thread that is hung in **gdb**.
-
-.. code-block:: text
-
-    (gdb) py-bt
-    Traceback (most recent call first):
-      File "/usr/lib/python3.8/threading.py", line 302, in wait
-        waiter.acquire()
-      File "/usr/lib/python3.8/threading.py", line 558, in wait
-        signaled = self._cond.wait(timeout)
-      File "/home/myron/source/akit-quickstart/automation/python3/examples/blah.py", line 21, in c
-        self._c.wait()
-      <built-in method getattr of module object at remote 0x7f96d008b0e0>
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_resolver.py", line 193, in _get_py_dictionary
-        attr = getattr(var, name)
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_resolver.py", line 74, in get_contents_debug_adapter_protocol
-        dct, used___dict__ = self._get_py_dictionary(obj)
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_suspended_frames.py", line 166, in get_children_variables
-        lst = resolver.get_contents_debug_adapter_protocol(self.value, fmt=fmt)
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_constants.py", line 513, in new_func
-        return func(*args, **kwargs)
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_comm.py", line 775, in internal_get_variable_json
-        for child_var in variable.get_children_variables(fmt=fmt, scope=scope):
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_constants.py", line 513, in new_func
-        return func(*args, **kwargs)
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_comm.py", line 542, in do_it
-        self.method(dbg, *self.args, **self.kwargs)
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/pydevd.py", line 1715, in process_internal_commands
-        int_cmd.do_it(self)
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/pydevd.py", line 2010, in _do_wait_suspend
-        self.process_internal_commands()
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/pydevd.py", line 2744, in do_wait_suspend
-        
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_frame.py", line 164, in do_wait_suspend
-        self._args[0].do_wait_suspend(*args, **kwargs)
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/_vendored/pydevd/_pydevd_bundle/pydevd_frame.py", line 6321, in trace_dispatch
-      File "/home/myron/source/akit-quickstart/automation/python3/examples/blah.py", line 26, in <module>
-        print("blah a={}".format(blah.a))   # Put Breakpoint Here
-      <built-in method exec of module object at remote 0x7f96d008b0e0>
-      File "/usr/lib/python3.8/runpy.py", line 343, in _run_code
-      File "/usr/lib/python3.8/runpy.py", line 353, in _run_module_code
-      File "/usr/lib/python3.8/runpy.py", line 521, in run_path
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/../debugpy/server/cli.py", line 285, in run_file
-        runpy.run_path(target_as_str, run_name=compat.force_str("__main__"))
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/../debugpy/server/cli.py", line 1212, in main
-      File "/home/myron/.vscode/extensions/ms-python.python-2021.11.1422169775/pythonFiles/lib/python/debugpy/__main__.py", line 45, in <module>
-        cli.main()
-      <built-in method exec of module object at remote 0x7f96d008b0e0>
-      File "/usr/lib/python3.8/runpy.py", line 87, in _run_code
-        exec(code, run_globals)
-      File "/usr/lib/python3.8/runpy.py", line 194, in _run_module_as_main
-        return _run_code(code, main_globals, None,
-
-What we can learn from this, is that its critical that our test code is debuggable and that we understand
-how the debugger is executing our code.  In order to ensure that our test code can run in a stable fashion in the
-debugger, we need to respect the implied contract that properties on objects should only be performing simple
-calculations and internal object data access.  With that said, here are some specific examples of code that I have
-encountered in properties that should be avoided.
-
-Dont Run Commands Via SSH
--------------------------
-
-.. code-block:: python
-
-    def todo_add_example():
-        return
-
-Dont Call Methods that Proxy Across Threads
--------------------------------------------
-
-.. code-block:: python
-
-    def todo_add_example():
-        return
+* Running commands via SSH
+* Calling methods that proxy across threads
+* Blocking on synchronization primitives
+* Performing complicated operations
 
 Exception Handling
 ==================
 
 The 'AutomationKit' is a test framework and library so a majority of the function, class and method
 implementations should behave like a library component and release control over the resolution of
-exceptional conditions to the 'Application' level of code.  In the case of a test run, the code that
+exceptional conditions to the 'Application' level of code. In the case of a test run, the code that
 would be considered to be at the 'Application' level is the code that is controlling the flow of execution.
-This code controlling the flow of the test run is mainly just the flow control parts of the test framework,
-in the case of the 'AutomationKit' the 'testplus' code and the test case code itself.  The rest of the
-test framework code that is not controlling flow is considered API or library code and so it follows very
-specific rules for exception handling that help to ensure that API(s) release control of the handling of
-exceptional conditions to the flow control code.  Here are the rules:
+
+Here are the rules:
 
 1. API and library code SHOULD NOT handle an exception if handling the exception will not allow the API
    to recover and continue perform its intended purpose successfully (if you cannot fix the problem allow the exception to bubble)
 
 2. An API or library SHOULD catch exception and reclassify them if doing so will add specific information
-   about the context around which the exception was caught.  The follwing is an example:
+   about the context around which the exception was caught. The following is an example:
 
 .. code-block:: python
 
@@ -429,20 +462,21 @@ exceptional conditions to the flow control code.  Here are the rules:
         errmsg = "Failure while importing job package %r"  % job_package
         raise argparse.ArgumentError("--job", errmsg) from imperr
 
-3. 'AutomationKit' exceptions will display the code from which they were raised.  An API or library SHOULD catch
+3. 'AutomationKit' exceptions will display the code from which they were raised. An API or library SHOULD catch
    and reclassify an exception if doing so will improve the code context view related to the nature of the problem
    that caused the exceptional condition. (raise exceptions from the code you want to show in the test failure reports)
 
 4. An API or library SHOULD catch an exception and add "EXTRA" information to the exception if doing so
    will provide contextual information about unique circumstances that cause a specific exception
 
-5. 'AKitSemanticError' should NEVER be handled. There are raised when an API is being used improperly.  This means there
-   is a definitive test code failure.  They should ALWAYS be allowed to bubble so the improper usage can be fixed.
+5. 'SemanticError' should NEVER be handled. There are raised when an API is being used improperly. This means there
+   is a definitive test code failure. They should ALWAYS be allowed to bubble so the improper usage can be fixed.
 
 6. In all other cases, exceptions should be allowed to bubble
 
 Special Exceptions
-==================
+------------------
+
 The 'AutomationKit' utilizes very specific exception in order to classify or categorize exceptional conditions
 that occur during an automation run into specific groups which help to provide quick and immediate information
 about the nature of an issue and the potential team or individual that should get involved with resolving the issue.
@@ -452,34 +486,31 @@ The groups we attempt to classify exceptional conditions into are:
 * test framework code misuses (semantic error)
 * test failure (something was validated and found to be incorrect)
 
-AKitConfigurationError
-----------------------
-It very important to detect and raise configuration exceptions.  Configuration exceptions prevent noise from
+ConfigurationError
+^^^^^^^^^^^^^^^^^^
+It very important to detect and raise configuration exceptions. Configuration exceptions prevent noise from
 being generated by the running of tests under conditions that will not result in the generation of useful test
-data.  Configuration exceptions also provide a chance for test framework engineers to pass on expert knowledge
+data. Configuration exceptions also provide a chance for test framework engineers to pass on expert knowledge
 to test framework consumers as to mistakes they may be making in the configuration of the test environment and
 can point consumers to documentation that will help resolve the configuration issue.
 
-AKitSemanticError
------------------
-Great test frameworks pass on expert knowledge to the consumers of the test framework.  They do this by providing
+SemanticError
+^^^^^^^^^^^^^
+Great test frameworks pass on expert knowledge to the consumers of the test framework. They do this by providing
 immediate feedback to the consumer when the consumer is making a mistake or misusing a test framework API(s).
 
-AKitAssertionError
-------------------
-An important feature of any great test framework is that it attempts to classify issues.  An important distinction
-is to identify when the test code has encountered a situration which points to an improper condition in the state
-of a target under test.  The 'AutomationKit' provides the 'AKitAssertionError' for this purpose.  Raising a normal
-'AssertionError' or the 'AutomationKit' derivative class 'AKitAssertionError' will result in an issue being classified
-as a failure of condition or state associated with the target of the test scenario.  'AKitAssertionError' is derived
-from AssertionError, but it provides additional error formatting capabilities, so it is prefered over the python
-'AssertionError' type. 
-
+AssertionError
+^^^^^^^^^^^^^^
+An important feature of any great test framework is that it attempts to classify issues. An important distinction
+is to identify when the test code has encountered a situation which points to an improper condition in the state
+of a target under test. The 'AutomationKit' provides the 'AssertionError' for this purpose. Raising a normal
+'AssertionError' or the 'AutomationKit' derivative class 'AssertionError' will result in an issue being classified
+as a failure of condition or state associated with the target of the test scenario.
 
 Return Statements
 =================
 
-All functions or methods that are not generators should have a `return` statement.  The return
+All functions or methods that are not generators should have a `return` statement. The return
 statements are important for four reasons:
 
 * It prevents the formation of appended functionality during a bad code merge
@@ -493,9 +524,9 @@ Formation of Appended Functionality
 -----------------------------------
 
 One of the common tasks that is performed frequently by software developers is the refactoring or
-merging of code.  During the process of refactoring or merging code, function declarations might
-be missed or incorrectly deleted.  When this happens, new functionality can end up being inadvertantly
-appended to the previous function in the code.  Take the following two functions as a simplified example.
+merging of code. During the process of refactoring or merging code, function declarations might
+be missed or incorrectly deleted. When this happens, new functionality can end up being inadvertently
+appended to the previous function in the code. Take the following two functions as a simplified example.
 
 .. code-block:: python
 
@@ -504,7 +535,6 @@ appended to the previous function in the code.  Take the following two functions
     
     def say_world():
         print("World")
-
 
 If returns are not present at the end of the functions above, then during a refactor or code
 merge, it is possible for lines of code to be removed, like if the `say_world` function
@@ -516,7 +546,6 @@ declaration was deleted like so:
         print("Hello")
     
         print("World")
-
 
 Now, without warning from python, the functionality of the `say_world` function has been appended
 to the `say_hello` function and thus changes the functionality of the `say_hello` function without
@@ -536,7 +565,7 @@ as in the code below.
         return
 
 In the code above, we clearly mark the end of our functions so python has a better chance of doing
-the correct thing when code is modified incorrectly.  If the function declaration for `say_world`
+the correct thing when code is modified incorrectly. If the function declaration for `say_world`
 is removed like so.
 
 .. code-block:: python
@@ -548,109 +577,36 @@ is removed like so.
         print("World")
         return
 
-
 In the case above, python will not execute the dangling code and will not append its functionality
-to the `say_hello` method.  Also, the python linter can show the remaining code body for `say_world`
+to the `say_hello` method. Also, the python linter can show the remaining code body for `say_world`
 as dead code or unreachable code and complain when it tries to lint the code in the file.
 
 Line Number for Debugging
 -------------------------
-A very important aspect of test code is debuggability.  In order to be able to inspect the results
+A very important aspect of test code is debuggability. In order to be able to inspect the results
 of a function before it returns, you need a line of code to hang a breakpoint on. By stopping the
 debugger on the return statement, you can see the values of the inputs to the function and values
 of any intermediate byproducts or local variables in the context of the function.
-
-.. code-block:: python
-
-    import dis
-    
-    def function_with_return(a: int, b: int):
-        if a + b == 99:
-            print ("Hello '99'")
-        return
-    
-    def function_without_return(a: int, b: int):
-        if a + b == 99:
-            print ("Hello '99'")
-    
-    print("==== FUNCTION WITH RETURN ====")
-    fwr_assem = dis.dis(function_with_return)
-    print(fwr_assem)
-    print("")
-    
-    
-    print("==== FUNCTION WITHOUT RETURN ====")
-    fwor_assem = dis.dis(function_without_return)
-    print(fwor_assem)
-    print("")
-
-
-.. code-block:: text
-
-    ==== FUNCTION WITH RETURN ====
-    4           0 LOAD_FAST                0 (a)
-                2 LOAD_FAST                1 (b)
-                4 BINARY_ADD
-                6 LOAD_CONST               1 (99)
-                8 COMPARE_OP               2 (==)
-                10 POP_JUMP_IF_FALSE       20
-    
-    5          12 LOAD_GLOBAL              0 (print)
-                14 LOAD_CONST               2 ("Hello '99'")
-                16 CALL_FUNCTION            1
-                18 POP_TOP
-    
-    6     >>   20 LOAD_CONST               0 (None)  # Has a Distict Line Number (6)
-                22 RETURN_VALUE
-    None
-
-
-Distinct lines of code, which have an associated line number, are very important for enabling a
-great debugging experience.  Without a distinct line of code or line number, there is no place
-to hang a breakpoint on a piece of code that is associated with the bytecode of a program.
-
-.. code-block:: text
-
-    ==== FUNCTION WITHOUT RETURN ====
-    9           0 LOAD_FAST                0 (a)
-                2 LOAD_FAST                1 (b)
-                4 BINARY_ADD
-                6 LOAD_CONST               1 (99)
-                8 COMPARE_OP               2 (==)
-                10 POP_JUMP_IF_FALSE       20
-
-    10          12 LOAD_GLOBAL              0 (print)
-                14 LOAD_CONST               2 ("Hello '99'")
-                16 CALL_FUNCTION            1
-                18 POP_TOP
-            >>   20 LOAD_CONST               0 (None)  # Has NO Line Number
-                22 RETURN_VALUE
-    None
-
 
 In Context Return Verification
 ------------------------------
 
 One of the most important aspects of writing debuggable code, is to write code in such a way that
 you can see the values of the local variables that contributed to the creation of the value being
-returned.  The following is an example function that demonstrates the concept of writing functions
+returned. The following is an example function that demonstrates the concept of writing functions
 so the context of the return value can be examined.
 
 .. code-block:: python
 
     def example_function(a: int, b: int) -> int:
-
         multiplier = random.randint(0, 10)
-
         rtnval: int = (a + b) * multiplier
-        
         return rtnval
-
 
 From looking at the simple example above, you can see that in order to debug the function and
 make sure it is returning the correct answer, it is useful to be able to see the `multiplier`
-parameter that is generated locally and is being used to effect the output.  Providing a simple
-independant return allows us to see the context that is generating the output value.  Another
+parameter that is generated locally and is being used to effect the output. Providing a simple
+independent return allows us to see the context that is generating the output value. Another
 example below shows how a function like this might be written that will not provide the same
 ability to debug the function.
 
@@ -659,91 +615,32 @@ ability to debug the function.
     def example_function(a: int, b: int) -> int:
         return (a + b) * random.randint(0, 10)
 
-
 This function is sometimes valued by some developers for its brevity, but for testing purposes,
 this coding style results in reduced quality code. The reason the code is reduced quality is
-because you cannot see the context of the return value being generated.  If you put a breakpoint
-on the `return` statement, you don't see the resulting value until you step out into the calling
-function context. When you step out of the function to its calling function to see the return value,
-the local variables of the `example_function` and the context that generated the return value is
-no longer available. Upon the return of the function, the stack was popped and the context went away.
-
-Because of the importance of examining the context that generates a returned value, it is always
-prefered to create a local variable in order to effect a simple return like so:
-
-.. code-block:: python
-
-    def example_function(a: int, b: int, c: int):
-        rtnval = (a + b) * c
-        return rtnval
-
-
-Vise a complexed return statement such as
-
-.. code-block:: python
-
-    def example_function(a: int, b: int, c: int):
-        return (a + b) * c
-
+because you cannot see the context of the return value being generated.
 
 Code Legibility
----------------
+------------
 
 Finally, `return` statements are important to improve the legibility of code. Because python code
 uses indentation to determine scope, the repeated indentation of successive code blocks can present
-issues with the readability of code. This can particularly be a problem with longer functions.  The
-example code below demonstates the improvement of ligibility that a return statement can offer.
+issues with the readability of code. This can particularly be a problem with longer functions.
 
-.. code-block:: python
+For consistency and to help resolve all of these issues, It is preferred to use returns on all functions
+and methods. Any function or method that is not a generator, since generators don't have returns.
 
-    def example_function(a: Optional[int], b: Optional[int], c: Optional[int], d: Optional[int]):
-        val = None
-
-        if a is not None:
-            print (a)
-            if b is not None:
-                print (a + b)
-                if c is not None:
-                    print ((a + b) * c)
-                    if d is not None:
-                        print ((a + b) * c) + d
-        return
-
-For the code above, it is clear where the end of the function resides as it has a return.  This can
-be particularly important if this was a longer function.
-
-For the function below, it might be a little more confusing where a function ends in a larger block
-of code.
-
-.. code-block:: python
-
-    def example_function(a: Optional[int], b: Optional[int], c: Optional[int], d: Optional[int]):
-        rtnval = None
-    
-        if a is not None:
-            print (a)
-            if b is not None:
-                print (a + b)
-                if c is not None:
-                    print ((a + b) * c)
-                    if d is not None:
-                        print ((a + b) * c) + d
-
-
-For consistency and to help resolve all of these issues, It is prefered to use returns on all functions
-and methods.  Any function or method that is not a generator, since generators don't have returns.
-
-InterOp and Persistance Decorators
+InterOp and Persistence Decorators
 ==================================
-Distributed automation scenarios engage in an aweful lot of interop activity.  When your engaging in
-any type of interop activity, there can be problems with reliability.  One of the major aspects of
-distrubuted testing is to place reliability expectations on the performance of interop APIS under
-both success and failure conditions.  Let me highlight that, test framwork APIs **must** be useable by
-test code for both **success** and **failure** conditions.  They must allow for the caller to pass
-**valid** and **invalid** data so the behavior of the remote enpoint can be tested under different
+
+Distributed automation scenarios engage in an awful lot of interop activity. When your engaging in
+any type of interop activity, there can be problems with reliability. One of the major aspects of
+distributed testing is to place reliability expectations on the performance of interop APIS under
+both success and failure conditions. Let me highlight that, test framework APIs **must** be usable by
+test code for both **success** and **failure** conditions. They must allow for the caller to pass
+**valid** and **invalid** data so the behavior of the remote endpoint can be tested under different
 conditions.
 
-An experience Test Framework Architect is aware of this important aspect of test framework APIs that is
+An experienced Test Framework Architect is aware of this important aspect of test framework APIs that is
 much different from maybe a production API and will design the APIs accordingly.
 
 One pattern that you might see in a production environment for APIs is the use of a `@retry` decorator
@@ -757,45 +654,28 @@ on an API that might not have 100% reliability.
       return
   
 This might work fine in a production environment where calling the API successfully is the main goal,
-but for test code, our main goal for interop APIs is not just to make a successful calls.  We also have
-several competeing goals:
+but for test code, our main goal for interop APIs is not just to make successful calls. We also have
+several competing goals:
 
-  * Check expected behavior (for success and failure)
-  * Capture detailed data in failure contexts
-  * Let tests and higher level code have control of behaviors and expectations
+* Check expected behavior (for success and failure)
+* Capture detailed data in failure contexts
+* Let tests and higher level code have control of behaviors and expectations
 
-The use of retry decorations negatively impacts these goals.  First of all, a `@retry` decoration always
-assumes a call should succeed.  Good test framework code **does not assume** or make decisions for the
-code that is controlling the flow of a test.  Flow control and error handling should be the responsibility
-of the higher level test code.  Good test framework code lets the higher level code **make expections**
-on the behavior of the code under test in varying conditions.  Good test framework code also allows
+The use of retry decorations negatively impacts these goals. First of all, a `@retry` decoration always
+assumes a call should succeed. Good test framework code **does not assume** or make decisions for the
+code that is controlling the flow of a test. Flow control and error handling should be the responsibility
+of the higher level test code. Good test framework code lets the higher level code **make expectations**
+on the behavior of the code under test in varying conditions. Good test framework code also allows
 the higher level code to make decisions about behavior under success and failure conditions so the
 higher level code can decide what to do based on the current context of the test.
 
-Another problem with the use of the `@retry` decorator is the fact that it will not be capable of changing
-behavior based on use context as it is applied on module import and not at test runtime.  The test code
-should be able to vary the parameters passed to test framework APIs and control the behavior and also how
-the API collects data.
-
-Below is another example of the use of a persistance decorator that will negatively impact the ability
-of a test framework API to work with test code in order to test the interoperability of remote target
-code.
-
-.. code-block:: python
-
-  @reconnect_retry_method
-  def run_command(command):
-      status, stdout, stderr = self.ssh_agent.run_cmd(command)
-      return status, stdout, stderr
-
-These uses of decorators don't take into account the proper testing scenarios and limit diversity of
-behavior for the API.  A better approach to design inter-operability APIs used by the **Automation Kit**
+A better approach to design inter-operability APIs used by the **Automation Kit**
 is to allow the tests to pass parameters to the API to allow higher level code to change the behavior of
 the APIs.
 
 The pattern that should be used is to tack on behavior modification parameters to the end of the
-inter-op APIs.  Another important aspect of designing APIs and behavior parameters is to be consistent.
-An example of a behavior paremeter might be that on every API that modifies the remote state shared by
+inter-op APIs. Another important aspect of designing APIs and behavior parameters is to be consistent.
+An example of a behavior parameter might be that on every API that modifies the remote state shared by
 devices should have a `sync` parameter to indicate the API should wait for a `sync` of shared state. 
 
 .. code-block:: python
@@ -816,11 +696,11 @@ Note on the above API(s), the APIs that `add`, `delete` and `modify` data have a
 the APIs that do not modify state do not offer a sync behavior.
 
 This sort of adding parameters can be a problem when you have lots of different ways you want
-to offer control over a set of interop API(s).  You can quickly have a longer list of parameters
-that are needed to control the behavior of the lower level code.  If you have 500 interop APIs
-in your test framework, this can lead to maintenance issues when adding new parameters.  The
-**Automation Kit** deals with this nicely by have one Object parameter, that is used to contain
-the behavior modification parameters.  Here is an example of a way to handle this that will scale
+to offer control over a set of interop API(s). You can quickly have a longer list of parameters
+that are needed to control the behavior of the lower level code. If you have 500 interop APIs
+in your test framework, this can lead to maintenance issues when adding new parameters. The
+**Automation Kit** deals with this nicely by having one Object parameter, that is used to contain
+the behavior modification parameters. Here is an example of a way to handle this that will scale
 nicely.
 
 .. code-block:: python
@@ -861,27 +741,7 @@ nicely.
 
           return
 
-So for the example APIs above, we might add a single behavior parameter to all of the APIs to offer
-the test code control of the behavior of the code making the remote interop REMOTE-API call.  For example:
-
-.. code-block:: python
-
-  def add_member(name: str, sync: bool=True, aspects: Aspects=DEFAULT_ASPECTS) -> int:
-      return id
-  
-  def delete_member(id: int, sync: bool=True, aspects: Aspects=DEFAULT_ASPECTS):
-      return
-
-  def get_members(aspects: Aspects=DEFAULT_ASPECTS) -> List[str]:
-      return
-
-  def rename_member(id: int, new_name: str, old_name: str, sync: bool=True, aspects: Aspects=DEFAULT_ASPECTS):
-      return
-
-Now lets say we need to add a new parameter to all 500 of our interop APIs, we don't need to modify
-any of the 500 API function signatures.  To add the new behavior control, we modify the `Aspects` object
-and we modify the lower level remote interop REMOTE-API calling code. Our maintenance headache of modifying
-all 500 APIs to add a new behavior is eliminated.
-
 This pattern scales well and very very very important aspects of how we write code is that it
 needs to be consumable, reliable and must be maintainable at scale.
+
+

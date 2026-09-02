@@ -1,8 +1,38 @@
 #!/usr/bin/env python3
+'''
+    The 'rehome-repository' script is used to setup the development environment for a package.  It walks through the 'workspaces'
+    folder and creates a '.vscode' project file for each '.template'.  It replaces macros in the '.template' files when it creates
+    the corresponding '.vscode'.   It also creates an .env file that sets custome development environment variables for the end user.
+
+    The rehome-repository script can be extended by creating a 'rehome_repository_ext.py' module and by implementing one of the
+    following folders:
+
+    Possible Extension Functions:
+
+        def macro_lookup_ext(macro_lookup: OrderedDict) -> None:
+            """
+                Called in order to update and customize the macro lookup dictionary with updated template macros.
+            """
+
+        def python_path_ext(python_path: str) -> str:
+            """
+                Called with the value that will be set for PYTHON_PATH.  When called this function should either
+                prepend or append the 'python_path' string and then return the modified path.
+            """
+        
+        def development_environment_ext(envf: RawIOBase) -> None:
+            """
+                Called with a writable file that is open for writing to the '.env' file.  This method is used
+                to write custom environment variables.
+            """
+
+'''
 
 import argparse
+import collections
 import configparser
 import os
+import re
 import platform
 import sys
 import subprocess
@@ -24,6 +54,7 @@ REPOSITORY_PACKAGES_FOLDER = os.path.abspath(os.path.join(REPOSITORY_FOLDER, "so
 REPOSITORY_TOOLS_FOLDER = os.path.abspath(os.path.join(REPOSITORY_FOLDER, "source", "tools"))
 
 HOME_FOLDER = os.path.expanduser("~")
+
 CONFIG_FOLDER = os.path.join(HOME_FOLDER, "mjr")
 
 WORKSPACES_FOLDER = os.path.join(REPOSITORY_FOLDER, "workspaces")
@@ -61,41 +92,87 @@ if pyres.returncode != 0:
     exit(1)
 
 VENV_FOLDER = os.path.join(REPOSITORY_FOLDER, ".venv")
-VENV_BIN_FOLDER = os.path.join(VENV_FOLDER, "bin")
-VENV_PYTHON_BINARY = os.path.join(VENV_BIN_FOLDER, "python")
-VENV_ACTIVATE_SCRIPT = os.path.join(VENV_BIN_FOLDER, "activate")
 
+VENV_BIN_FOLDER = os.path.join(VENV_FOLDER, "bin")
+if platform.system() == "Windows":
+    VENV_BIN_FOLDER = os.path.join(VENV_FOLDER, "Scripts")
+
+VENV_PYTHON_BINARY = os.path.join(VENV_BIN_FOLDER, "python")
+
+VENV_ACTIVATE_SCRIPT = os.path.join(VENV_BIN_FOLDER, "activate")
+if platform.system() == "Windows":
+    VENV_BIN_FOLDER = os.path.join(VENV_FOLDER, "activate.ps1")
 
 VENV_SITEPACKAGES_FOLDER = None
 if platform.system() != "Windows":
     VENV_SITEPACKAGES_FOLDER = os.path.join(VENV_FOLDER, "lib", PYTHON_VERSION, "site-packages")
 else:
-    VENV_SITEPACKAGES_FOLDER = os.path.join(VENV_FOLDER, "Lib", PYTHON_VERSION, "site-packages")
+    VENV_SITEPACKAGES_FOLDER = os.path.join(VENV_FOLDER, "Lib", "site-packages")
 
 
-def replace_macros(template_line):
+macro_lookup_ext = None
+python_path_ext = None
+development_environment_ext = None
+
+try:
+    import rehome_repository_ext
+
+    if hasattr(rehome_repository_ext, "development_environment_ext"):
+        development_environment_ext = rehome_repository_ext.development_environment_ext
+
+    if hasattr(rehome_repository_ext, "macro_lookup_ext"):
+        macro_lookup_ext = rehome_repository_ext.macro_lookup_ext
+    
+    if hasattr(rehome_repository_ext, "python_path_ext"):
+        python_path_ext = rehome_repository_ext.python_path_ext
+
+except ImportError as imperr:
+    pass
+
+
+def shellify_path(path: str) -> str:
+    """
+        Converts a string into a path that can be used in a shell.
+    """
+    path = path.replace("\\", "\\\\")
+    return path
+
+
+def replace_macros(template_line: str):
     """
         Perform a simple replacement any macros found in the template line passed to us.
     """
 
+    macro_lookup = collections.OrderedDict()
+
+    macro_lookup[r"${TMPLT:HOME}"] = shellify_path(HOME_FOLDER)
+    macro_lookup[r"${TMPLT:HOME_CONFIG}"] = shellify_path(CONFIG_FOLDER)
+    macro_lookup[r"${TMPLT:PYTHON_VERSION}"] = shellify_path(PYTHON_VERSION)
+    macro_lookup[r"${TMPLT:REPOSITORY_FOLDER}"] = shellify_path(REPOSITORY_FOLDER)
+    macro_lookup[r"${TMPLT:REPOSITORY_ENVIRONMENT_FILE}"] = shellify_path(REPOSITORY_ENVIRONMENT_FILE)
+    macro_lookup[r"${TMPLT:REPOSITORY_PACKAGES_FOLDER}"] = shellify_path(REPOSITORY_PACKAGES_FOLDER)
+    macro_lookup[r"${TMPLT:REPOSITORY_SERVICE_FOLDER}"] = shellify_path(REPOSITORY_PACKAGES_FOLDER)
+    macro_lookup[r"${TMPLT:REPOSITORY_TOOLS_FOLDER}"] = shellify_path(REPOSITORY_TOOLS_FOLDER)
+    macro_lookup[r"${TMPLT:VENV_FOLDER}"] = shellify_path(VENV_FOLDER)
+    macro_lookup[r"${TMPLT:VENV_BIN_FOLDER}"] = shellify_path(VENV_BIN_FOLDER)
+    macro_lookup[r"${TMPLT:VENV_PYTHON_BINARY}"] = shellify_path(VENV_PYTHON_BINARY)
+    macro_lookup[r"${TMPLT:VENV_ACTIVATE_SCRIPT}"] = shellify_path(VENV_ACTIVATE_SCRIPT)
+    macro_lookup[r"${TMPLT:VENV_SITEPACKAGES_FOLDER}"] = shellify_path(VENV_SITEPACKAGES_FOLDER)
+    macro_lookup[r"${TMPLT:WORKSPACES_FOLDER}"] = shellify_path(WORKSPACES_FOLDER)
+
+    if macro_lookup_ext is not None:
+        macro_lookup_ext(macro_lookup)
+
     filled_line = template_line
 
-    filled_line = filled_line.replace(r"${TMPLT:HOME}", HOME_FOLDER.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:HOME_CONFIG}", CONFIG_FOLDER.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:PYTHON_VERSION}", PYTHON_VERSION.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:REPOSITORY_FOLDER}", REPOSITORY_FOLDER.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:REPOSITORY_ENVIRONMENT_FILE}", REPOSITORY_ENVIRONMENT_FILE.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:REPOSITORY_PACKAGES_FOLDER}", REPOSITORY_PACKAGES_FOLDER.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:REPOSITORY_SERVICE_FOLDER}", REPOSITORY_PACKAGES_FOLDER.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:REPOSITORY_TOOLS_FOLDER}", REPOSITORY_TOOLS_FOLDER.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:VENV_FOLDER}", VENV_FOLDER.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:VENV_BIN_FOLDER}", VENV_BIN_FOLDER)
-    filled_line = filled_line.replace(r"${TMPLT:VENV_PYTHON_BINARY}", VENV_PYTHON_BINARY.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:VENV_ACTIVATE_SCRIPT}", VENV_ACTIVATE_SCRIPT.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:VENV_SITEPACKAGES_FOLDER}", VENV_SITEPACKAGES_FOLDER.replace("\\", "\\\\"))
-    filled_line = filled_line.replace(r"${TMPLT:WORKSPACES_FOLDER}", WORKSPACES_FOLDER.replace("\\", "\\\\"))
+    macrolist = macro_lookup.keys()
+
+    for macro in macrolist:
+        rvalue = macro_lookup[macro]
+        filled_line = filled_line.replace(macro, rvalue)
 
     return filled_line
+
 
 def generate_directories():
 
@@ -104,38 +181,60 @@ def generate_directories():
 
     return
 
+
 def generate_python_path():
 
-    #TODO: Add any PYTHONPATH customizations here.
+    folder_packages = os.path.join(REPOSITORY_SOURCE_FOLDER, "packages")
+    folder_service = os.path.join(REPOSITORY_SOURCE_FOLDER, "service")
+    folder_testroots = os.path.join(REPOSITORY_SOURCE_FOLDER, "testroots")
+    folder_tests = os.path.join(REPOSITORY_SOURCE_FOLDER, "tests")
+    folder_tools = os.path.join(REPOSITORY_SOURCE_FOLDER, "tools")
 
-    python_path = "{}/packages:{}/service:{}/testroots/testplus:{}".format(
-        REPOSITORY_SOURCE_FOLDER,
-        REPOSITORY_SOURCE_FOLDER,
-        REPOSITORY_SOURCE_FOLDER,
-        VENV_SITEPACKAGES_FOLDER)
+    python_path_parts = [
+        folder_packages,
+        folder_service,
+        folder_testroots,
+        folder_tests,
+        folder_tools,
+        VENV_SITEPACKAGES_FOLDER,
+    ]
+
+    python_path = os.pathsep.join(python_path_parts)
+
+    if python_path_ext is not None:
+        python_path = python_path_ext(python_path)
+
     return python_path
+
 
 def generate_development_env_file():
 
-    env_file = "{}/.env".format(REPOSITORY_FOLDER)
+    env_file = os.path.join(REPOSITORY_FOLDER, ".env")
+
     with open(env_file, 'w') as envf:
-        envf.write("PYTHON_VERSION=\"{}\"".format(PYTHON_VERSION))
+        envf.write(f'PYTHON_VERSION="{PYTHON_VERSION}"')
         envf.write(os.linesep)
  
         python_path = generate_python_path()
-        envf.write("PYTHONPATH=\"{}\"".format(python_path))
+        python_path_shellified = shellify_path(python_path)
+
+        envf.write(f'PYTHONPATH="{python_path_shellified}"')
         envf.write(os.linesep)
         envf.write(os.linesep)
         
-        envf.write('REPOSITORY_FOLDER="{}"'.format(REPOSITORY_FOLDER))
+        repository_folder_shellified = shellify_path(REPOSITORY_FOLDER)
+
+        envf.write(f'REPOSITORY_FOLDER="{repository_folder_shellified}"')
         envf.write(os.linesep)
         envf.write(os.linesep)
 
-        #TODO: Add the setting of any other '.env' environment variables here.
+        if development_environment_ext is not None:
+            development_environment_ext(envf)
 
         envf.write(os.linesep)
 
     return
+
 
 def generate_vscode_workspace_files():
     # Go through all of the VSCODE workspace templates and generate the 'code-workspace' files homed to the
@@ -159,18 +258,99 @@ def generate_vscode_workspace_files():
 
         template_file_base, _ = os.path.splitext(os.path.basename(template_file))
         template_dir = os.path.dirname(template_file)
-        workspace_file = os.path.join(template_dir, "{}.code-workspace".format(template_file_base))
+        workspace_file = os.path.join(template_dir, f"{template_file_base}.code-workspace")
 
-        print("Processing template: {}".format(template_file))
+        print(f"Processing template: {template_file}")
 
         with open(template_file, 'r') as tf:
             template_lines = tf.read().splitlines(True)
 
             with open(workspace_file, 'w') as wf:
-                print("Generating code-workspace: {}".format(workspace_file))
+                print(f"Generating code-workspace: {workspace_file}")
                 for tline in template_lines:
                     fline = replace_macros(tline)
                     wf.write(fline)
+
+    return
+
+
+def repoint_virtual_environment():
+    """
+        Repoints the virtual environment's recorded paths at this location.
+
+        A virtual environment records the absolute path of the interpreter that
+        created it -- in the '#!' line of every console script, in the
+        activation files and in 'pyvenv.cfg'.  Moving the repository leaves all
+        of it naming the old location, and the console scripts then fail with
+        'bad interpreter' rather than anything that points at the cause.
+
+        Only paths that name a '.venv' interpreter are rewritten.  A script
+        whose shebang names a system interpreter, or uses '/usr/bin/env', is
+        left alone: that is a deliberate choice by whatever produced it, not a
+        stale path.
+    """
+
+    if not os.path.isdir(VENV_BIN_FOLDER):
+        return
+
+    activators = ("activate", "activate.csh", "activate.fish", "Activate.ps1",
+                  "activate.nu", "activate.bat", "deactivate.bat")
+
+    shebang_expr = re.compile(r"^#!(?P<path>\S*[/\\]\.venv[/\\][^\s]*python[\d.]*)\s*$")
+    venv_path_expr = re.compile(r"[A-Za-z]?:?[/\\][^\s\"';:]*[/\\]\.venv(?=[\"'\s/\\:;]|$)")
+
+    repointed = 0
+
+    for entry_name in sorted(os.listdir(VENV_BIN_FOLDER)):
+        entry_path = os.path.join(VENV_BIN_FOLDER, entry_name)
+
+        if os.path.islink(entry_path) or not os.path.isfile(entry_path):
+            continue
+
+        try:
+            with open(entry_path, "r", encoding="utf-8") as content_file:
+                content = content_file.read()
+        except (OSError, UnicodeDecodeError):
+            # A compiled binary or something else we should not rewrite.
+            continue
+
+        original = content
+
+        if entry_name in activators:
+            content = venv_path_expr.sub(VENV_FOLDER, content)
+        else:
+            lines = content.split(os.linesep)
+            if len(lines) == 0:
+                continue
+            matched = shebang_expr.match(lines[0])
+            if matched is None:
+                continue
+            lines[0] = "#!{}".format(VENV_PYTHON_BINARY)
+            content = os.linesep.join(lines)
+
+        if content != original:
+            mode = os.stat(entry_path).st_mode
+            with open(entry_path, "w", encoding="utf-8") as content_file:
+                content_file.write(content)
+            os.chmod(entry_path, mode)
+            repointed += 1
+
+    config_file_name = os.path.join(VENV_FOLDER, "pyvenv.cfg")
+    if os.path.isfile(config_file_name):
+        with open(config_file_name, "r", encoding="utf-8") as config_file:
+            config_content = config_file.read()
+        updated_content = venv_path_expr.sub(VENV_FOLDER, config_content)
+        if updated_content != config_content:
+            with open(config_file_name, "w", encoding="utf-8") as config_file:
+                config_file.write(updated_content)
+            repointed += 1
+
+    if repointed > 0:
+        print("Repointed {} virtual environment file(s) at '{}'.".format(
+            repointed, VENV_FOLDER))
+
+    return
+
 
 def rehome_repository_main():
 
@@ -183,6 +363,7 @@ def rehome_repository_main():
     args = parser.parse_args()
 
     generate_directories()
+    repoint_virtual_environment()
     generate_development_env_file()
 
     if not args.skip_workspaces:

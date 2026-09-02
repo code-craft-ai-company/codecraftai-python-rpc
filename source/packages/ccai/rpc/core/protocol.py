@@ -1,3 +1,15 @@
+"""
+.. module:: protocol
+    :platform: Darwin, Linux, Unix, Windows
+    :synopsis: Module that contains the wire protocol framing constants and the request and reply message classes.
+
+.. moduleauthor:: Myron Walker <myron.walker@gmail.com>
+"""
+
+__author__ = "Myron Walker"
+__copyright__ = "Copyright 2025, Code Craft AI LLC"
+__credits__ = []
+
 
 import struct
 

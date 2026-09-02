@@ -44,6 +44,7 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
+.output
 nosetests.xml
 coverage.xml
 *.cover
@@ -131,3 +132,9 @@ dmypy.json
 
 # Project Specific Exclusion
 *.code-workspace
+
+# Claude Code worktree metadata
+.claude/
+
+# macOS Finder metadata
+.DS_Store

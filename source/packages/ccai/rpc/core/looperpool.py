@@ -8,7 +8,7 @@
 """
 
 __author__ = "Myron Walker"
-__copyright__ = "Copyright 2024, Myron W Walker"
+__copyright__ = "Copyright 2025, Code Craft AI LLC"
 __credits__ = []
 
 from typing import List
@@ -16,10 +16,10 @@ from typing import List
 
 from threading import RLock
 
-from mojo.errors.exceptions import LooperError
+from ccai.errors.exceptions import LooperError
 
-from mojo.rpc.core.looper import Looper
-from mojo.rpc.core.looperqueue import LooperQueue, LooperQueueShutdown
+from ccai.rpc.core.looper import Looper
+from ccai.rpc.core.looperqueue import LooperQueue, LooperQueueShutdown
 
 
 class LooperPool:

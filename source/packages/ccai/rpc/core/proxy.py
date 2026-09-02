@@ -1,3 +1,15 @@
+"""
+.. module:: proxy
+    :platform: Darwin, Linux, Unix, Windows
+    :synopsis: Module that contains the ByRef and ByValue wrappers used to declare how an object is passed over RPC.
+
+.. moduleauthor:: Myron Walker <myron.walker@gmail.com>
+"""
+
+__author__ = "Myron Walker"
+__copyright__ = "Copyright 2025, Code Craft AI LLC"
+__credits__ = []
+
 
 from uuid import uuid4
 
