@@ -1,8 +1,7 @@
 """
 .. module:: looperpool
     :platform: Darwin, Linux, Unix, Windows
-    :synopsis: Module that contains a Looper for repeating a loop function useful
-        for repeated, work packet or queue processing.
+    :synopsis: A pool of Looper workers that grows with queue depth and shuts down in order.
 
 .. moduleauthor:: Myron Walker <myron.walker@gmail.com>
 """
@@ -11,145 +10,127 @@ __author__ = "Myron Walker"
 __copyright__ = "Copyright 2025, Code Craft AI LLC"
 __credits__ = []
 
-from typing import List
+from typing import List, Optional, Sequence, Type
 
+import threading
 
-from threading import RLock
-
-from ccai.errors.exceptions import LooperError
-
+from ccai.rpc.errors import LooperError
 from ccai.rpc.core.looper import Looper
-from ccai.rpc.core.looperqueue import LooperQueue, LooperQueueShutdown
+from ccai.rpc.core.looperqueue import LooperQueue
 
 
 class LooperPool:
     """
-        The :class:`LooperPool` provides a convenient way to setup a thread pool and worker threads.  The
-        :class:`LooperPool` is passed a type derived from :class:`Looper` in order to customize the work
-        performed by the :class:`LooperPool`
+        Owns one :class:`LooperQueue` and a growable set of loopers. ``start_pool`` starts
+        ``min_loopers``; each push that leaves more than ``highwater`` packets queued starts one more
+        looper up to ``max_loopers``. The pool never shrinks; ``shutdown`` is how workers exit.
     """
 
-    def __init__(self, looper_type: Looper, group_name: str=None, min_loopers: int=5, max_loopers: int=10, highwater: int=5, daemon=True, **kwargs):
+    def __init__(self, looper_type: Type[Looper], group_name: str = "looper", min_loopers: int = 2,
+                 max_loopers: int = 8, highwater: int = 4, daemon: bool = True, **looper_kwargs) -> None:
+        if min_loopers < 1 or max_loopers < 1:
+            raise LooperError("LooperPool: min_loopers and max_loopers must both be at least 1.")
+        if min_loopers > max_loopers:
+            raise LooperError("LooperPool: min_loopers={} is greater than max_loopers={}.".format(min_loopers, max_loopers))
         self._looper_type = looper_type
         self._group_name = group_name
         self._min_loopers = min_loopers
         self._max_loopers = max_loopers
         self._highwater = highwater
         self._daemon = daemon
-        self._kwargs = kwargs
-
+        self._looper_kwargs = looper_kwargs
         self._queue = LooperQueue()
-
+        self._lock = threading.RLock()
+        self._loopers: List[Looper] = []
         self._running = False
-
-        self._threads_lock = RLock()
-        self._threads = []
-        self._thread_count = 0
+        self._started = False
         return
 
+    @property
+    def is_running(self) -> bool:
+        return self._running
 
-    def push_work(self, packet: object):
-        """
-            Pushes a work packet for the :class:`LooperPool` threads to work on.
-        """
+    @property
+    def worker_count(self) -> int:
+        with self._lock:
+            return len(self._loopers)
 
-        if self._running:
-            available = self._queue.push_work(packet)
-            if available > self._highwater:
-                self._threads_lock.acquire()
-                try:
-                    if self._thread_count < self._max_loopers:
-                        self._locked_start_looper()
-                finally:
-                    self._threads_lock.release()
-        else:
-            raise LooperError("LooperPool: push_work called after the looper pool has been shutdown.") from None
+    @property
+    def queue_depth(self) -> int:
+        return self._queue.depth
 
-        return available
+    @property
+    def group_name(self) -> str:
+        return self._group_name
 
-
-    def push_work_packets(self, packets: List[object]):
-        """
-            Pushes a list of work packets for the :class:`LooperPool` threads to work on.
-        """
-
-        if self._running:
-            available = self._queue.push_work_packets(packets)
-            if available > self._highwater:
-                self._threads_lock.acquire()
-                try:
-                    if self._thread_count < self._max_loopers:
-                        self._locked_start_looper()
-                finally:
-                    self._threads_lock.release()
-        else:
-            raise LooperError("LooperPool: push_work_packets called after the looper pool has been shutdown.") from None
-
-        return available
-
-
-    def shutdown(self):
-        """
-            Shutdown the :class:`LooperPool` and its worker threads.
-        """
-
-        # Set running to False to disallow the queueing of new work
-        self._running = False
-
-        running_threads = None
-        self._threads_lock.acquire()
-        try:
-            running_threads = [th for th in self._threads]
-            self._running = False
-            shutdown_work = [ LooperQueueShutdown() for n in range(0, len(running_threads) * 2)]
-            self._threads_lock.release()
-            try:
-                self._queue.push_work_packets(shutdown_work)
-            finally:
-                self._threads_lock.acquire()
-        finally:
-            self._threads_lock.release()
-
-        for th in running_threads:
-            th.join()
-
-        return
-
-
-    def start_pool(self):
-        """
-            Starts the :class:`LooperPool` with the minimum number of threads.
-        """
-
-        if self._running:
-            raise LooperError("LooperPool: start called while LooperPool is already running") from None
-
-        self._threads_lock.acquire()
-        self._running = True
-        try:
-            # We start up the minimum number of threads
+    def start_pool(self) -> None:
+        with self._lock:
+            if self._running:
+                raise LooperError("LooperPool: start_pool called while the pool is already running.")
+            if self._started:
+                raise LooperError("LooperPool: a pool cannot be restarted after shutdown.")
+            self._running = True
+            self._started = True
             for _ in range(0, self._min_loopers):
                 self._locked_start_looper()
-        finally:
-            self._threads_lock.release()
-
         return
 
+    def push_work(self, packet: object) -> int:
+        self._check_running("push_work")
+        depth = self._queue.push_work(packet)
+        self._grow_if_needed(depth)
+        return depth
 
-    def _locked_start_looper(self):
+    def push_work_packets(self, packets: Sequence[object]) -> int:
+        self._check_running("push_work_packets")
+        depth = self._queue.push_work_packets(packets)
+        self._grow_if_needed(depth)
+        return depth
+
+    def shutdown(self, timeout: Optional[float] = None) -> List[Looper]:
         """
-            Starts up a new :class:`Looper` worker thread.
+            Refuses further work, wakes every worker with a sentinel and waits for each to exit.
+            Returns the workers that did not exit within the timeout.
         """
+        with self._lock:
+            self._running = False
+            loopers = list(self._loopers)
+            self._queue.shutdown(len(loopers))
+        stragglers = []
+        for looper in loopers:
+            if not looper.wait_for_exit(timeout=timeout):
+                stragglers.append(looper)
+        return stragglers
 
-        try:
-            self._thread_count += 1
-            looper_name = "%s-%d" % (self._group_name, self._thread_count)
-            looper = self._looper_type(self._queue, name=looper_name, group=self._group_name, daemon=self._daemon, **self._kwargs)
-            looper.start()
-            self._threads.append(looper)
-        except:
-            self._thread_count -= 1
-            raise
+    def describe(self) -> dict:
+        with self._lock:
+            return {
+                "group": self._group_name,
+                "running": self._running,
+                "worker_count": len(self._loopers),
+                "queue_depth": self._queue.depth,
+                "min_loopers": self._min_loopers,
+                "max_loopers": self._max_loopers,
+                "highwater": self._highwater,
+                "workers": [{"name": lp.name, "running": lp.is_running} for lp in self._loopers],
+            }
 
+    def _check_running(self, operation: str) -> None:
+        if not self._running:
+            raise LooperError("LooperPool: {} called while the pool is not running.".format(operation))
         return
 
+    def _grow_if_needed(self, depth: int) -> None:
+        if depth > self._highwater:
+            with self._lock:
+                if self._running and len(self._loopers) < self._max_loopers:
+                    self._locked_start_looper()
+        return
+
+    def _locked_start_looper(self) -> None:
+        index = len(self._loopers) + 1
+        looper_name = "{}-{}".format(self._group_name, index)
+        looper = self._looper_type(self._queue, name=looper_name, group=self._group_name, daemon=self._daemon, **self._looper_kwargs)
+        looper.start()
+        self._loopers.append(looper)
+        return

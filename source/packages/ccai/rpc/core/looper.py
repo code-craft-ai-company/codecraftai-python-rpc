@@ -1,8 +1,7 @@
 """
 .. module:: looper
     :platform: Darwin, Linux, Unix, Windows
-    :synopsis: Module that contains a Looper for repeating a loop function useful
-        for repeated, work packet or queue processing.
+    :synopsis: The Looper worker thread base class. Subclasses implement ``loop`` to process one packet.
 
 .. moduleauthor:: Myron Walker <myron.walker@gmail.com>
 """
@@ -11,109 +10,98 @@ __author__ = "Myron Walker"
 __copyright__ = "Copyright 2025, Code Craft AI LLC"
 __credits__ = []
 
-
 from typing import Optional
 
-from threading import Event, Thread
+import logging
+import threading
 
-from ccai.errors.exceptions import AbstractMethodError, LooperError
-
+from ccai.rpc.errors import AbstractMethodError, LooperError
 from ccai.rpc.core.looperqueue import LooperQueue, LooperQueueShutdown
+
+logger = logging.getLogger("ccai.rpc.dispatch")
+
 
 class Looper:
     """
-        The :class:`Looper` is the worker thread for the :class:`LooperPool` object.
+        A worker that owns one thread and repeatedly pops a packet from its queue and calls ``loop``.
+        The thread exits when it pops a :class:`LooperQueueShutdown` sentinel or after ``stop`` was
+        requested and the next packet arrives. The exit gate is set on every exit path.
     """
 
-    def __init__(self, queue: LooperQueue, name: Optional[str]=None, group: Optional[str]=None, daemon:Optional[bool]=None, **kwargs):
+    def __init__(self, queue: LooperQueue, name: Optional[str] = None, group: Optional[str] = None,
+                 daemon: Optional[bool] = None, **kwargs) -> None:
+        self._queue = queue
         self._name = name
         self._group = group
-        self._kwargs = kwargs
         self._daemon = daemon
-
+        self._kwargs = kwargs
         self._running = False
+        self._stop_requested = False
         self._thread = None
-
-        self._queue = queue
-
         self._exit_gate = None
-
         return
 
+    @property
+    def name(self) -> str:
+        if self._thread is not None:
+            return self._thread.name
+        return self._name if self._name is not None else "looper"
 
-    def loop(self, packet) -> bool: # pylint: disable=no-self-use
+    @property
+    def group(self) -> Optional[str]:
+        return self._group
+
+    @property
+    def is_running(self) -> bool:
+        return self._running
+
+    def loop(self, packet: object) -> None:
         """
-            Method that is overloaded by derived classes in order to implement a work loop.
+            Processes one packet. Overridden by derived classes.
         """
-        raise AbstractMethodError("Looper: _loop must be overloaded by derived classes.") from None
+        raise AbstractMethodError("Looper: 'loop' must be overloaded by derived classes.")
 
-
-    def start(self):
+    def start(self) -> None:
         """
-            Method for starting the looper.
+            Starts the worker thread and returns once it has entered its work loop.
         """
-        self._exit_gate = Event()
-
-        start_gate = Event()
-        start_gate.clear()
-
-        self._thread = Thread(target=self._loop_entry, name=self._name,
-            args=(start_gate, self._queue), kwargs=None, daemon=self._daemon)
-
+        if self._thread is not None:
+            raise LooperError("Looper: start called on a looper that was already started.")
+        self._exit_gate = threading.Event()
+        start_gate = threading.Event()
+        self._thread = threading.Thread(target=self._loop_entry, name=self._name, args=(start_gate,), daemon=self._daemon)
         self._thread.start()
-
-        # Wait for the thread to start before we let the start method to return
         start_gate.wait()
-
         return
 
-
-    def thread_get_name(self):
-        return self._thread.name
-
-
-    def thread_set_name(self, name):
-        self._thread.name = name
-        return
-
-
-    def wait_for_exit(self, timeout: Optional[str]=None):
+    def stop(self) -> None:
         """
-            Method to wait for the looper thread to exit.
+            Requests exit. The thread leaves its loop when the next packet arrives.
+        """
+        self._stop_requested = True
+        return
+
+    def wait_for_exit(self, timeout: Optional[float] = None) -> bool:
+        """
+            Waits for the thread to exit. Returns ``True`` when it has, ``False`` on timeout.
         """
         if self._exit_gate is None:
-            raise LooperError("Looper: wait_for_exit called before Looper was started.") from None
+            raise LooperError("Looper: wait_for_exit called before the looper was started.")
+        return self._exit_gate.wait(timeout=timeout)
 
-        self._exit_gate.wait(timeout=timeout)
-        return
-
-
-    def _loop_entry(self, start_gate: Event, queue: LooperQueue):
-        """
-            Protected method that serves as the thread target and that drives
-            the work loop.
-        """
-        self._exit_gate.clear()
-
+    def _loop_entry(self, start_gate: threading.Event) -> None:
         self._running = True
         start_gate.set()
-        start_gate = None
-
-        while True:
-
-            packet = queue.pop()
-
-            # If we pop a LooperQueueShutdown from the queue
-            # the queue is shut down and we should exit
-            if isinstance(packet, LooperQueueShutdown):
-                break
-
-            # We may have been woken up so we can exit
-            if packet is None or not self._running:
-                break
-
-            self.loop(packet)
-
-            # end while True
-
+        try:
+            while True:
+                packet = self._queue.pop()
+                if isinstance(packet, LooperQueueShutdown) or packet is None or self._stop_requested:
+                    break
+                try:
+                    self.loop(packet)
+                except Exception:
+                    logger.exception("Looper %s: unhandled exception processing packet %r", self.name, packet)
+        finally:
+            self._running = False
+            self._exit_gate.set()
         return

@@ -43,10 +43,11 @@ object passed by the caller, timeouts are expressed the way `ccai.waiting` expre
 and exceptions come from `ccai.errors`, both provided by `codecraftai-foundations`. The public entry points are `RpcSocketServer` and
 `RpcSocketClient` in `ccai.rpc`; everything else lives under `ccai.rpc.core`.
 
-The package is early, in-progress work. The work dispatch primitives and the protocol vocabulary
-exist; most features below are specified but not yet implemented. Each feature has its own folder
-under `specs/` containing `requirements.md`, `design.md` and `tasks.md`. Consult the feature's
-`tasks.md` before starting work so effort goes toward open tasks rather than re-doing finished ones.
+Every feature below is implemented and covered by the test suite under `source/tests`. Each feature
+has its own folder under `specs/` containing `requirements.md`, `design.md` and `tasks.md`; the design
+documents record the decisions that changed during implementation, so read them before changing a
+mechanism. The full-stack tests run over an in-process socket pair (`tests/helpers.py`) and over TCP
+on localhost (`test_entry_points.py`).
 
 # Features
 Features are listed in the order a request travels and, roughly, the order they should be built.
@@ -137,8 +138,9 @@ Avoid composite tests that validate multiple components or functions in a series
 
 Use Python's `unittest` framework with `setUp` and `tearDown` methods to establish shared conditions across tests while maintaining separation of concerns.
 
-Tests that start `Looper` threads must always run those loopers as daemon threads and must
-shut them down in `tearDown`, so a failing test can never hang the test run.
+Tests that start `Looper` threads or sessions must run them as daemon threads and shut them down in
+`tearDown`, so a failing test can never hang the test run. Use `SessionPair` from `tests/helpers.py`
+for anything that needs a live client and server; it uses the `FAST` aspects so timeouts are short.
 
 # Code Naming Conventions
 The code naming conventions of this repository follows the [Code Craft AI Python Naming Conventions](userguide/10-02-naming-conventions.rst)

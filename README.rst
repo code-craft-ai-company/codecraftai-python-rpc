@@ -32,9 +32,40 @@ Highlights
 Status
 ======
 
-This package is early, in-progress work.  The threading primitives and the protocol vocabulary are in
-place, but the request dispatch, object proxying and serialization paths are not yet complete.  See
-the ``tasks.md`` in each feature folder under ``specs/`` for what is done and what remains.
+The package is implemented end to end: framing and a pickle-free codec, sessions with correlation,
+remote exceptions, heartbeats and leases, typed proxies, ordered one-way callbacks, asynchronous calls
+with cancellation and progress, aspects-driven behaviour, TLS and token authentication.  The test suite
+under ``source/tests`` exercises the full stack in-process and over TCP.  The design record for each
+feature is under ``specs/``.
+
+Quick Start
+===========
+
+.. code-block:: python
+
+    from typing import Protocol
+    from ccai.rpc import RpcSocketServer, RpcSocketClient, by_ref
+
+    class Greeter:
+        def greet(self, name: str) -> str:
+            return "hello " + name
+        def subscribe(self, listener) -> None:
+            listener.on_event("subscribed")      # runs on the client's dispatch pool, never its caller thread
+
+    class GreeterProtocol(Protocol):
+        def greet(self, name: str) -> str: ...
+        def subscribe(self, listener) -> None: ...
+
+    @by_ref
+    class Listener:
+        def on_event(self, what: str) -> None:
+            print("event:", what)
+
+    with RpcSocketServer(Greeter(), ("127.0.0.1", 0)) as server:
+        with RpcSocketClient(GreeterProtocol, server.bound_endpoint) as client:
+            greeter = client.get_service()
+            print(greeter.greet("world"))
+            greeter.subscribe(Listener())
 
 Code Organization
 =================

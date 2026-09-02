@@ -45,6 +45,8 @@ attribute and then calling it.
 
 ### Design Decisions
 
+0. **Callable attributes come back as a method descriptor, not a reference** — an untyped proxy's first access to a method costs one round trip and returns a small by-value marker; the proxy builds and caches a bound remote method from it, so later calls are one round trip with the real method name in the call context, and no transient bound-method objects are ever held by reference. A typed proxy skips the first round trip because the protocol declares the name.
+
 1. **Holder counts plus release notifications** — prompt cleanup in the normal case. Leases are
    the backstop when the holder dies (see the Leases feature).
 2. **One proxy per reference per session** — a cache keyed by reference id keeps `is` and `==`

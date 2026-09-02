@@ -12,49 +12,49 @@ Wire Protocol's payload-carrying messages and Object Proxies both wait on this f
   - [x] 1.1 `Flattenable` with `flatten` raising `AbstractMethodError`
     - _Requirements: 2.5_
 
-- [ ] 2. Tags, versioning and scalars
-  - [ ] 2.1 Create `tags.py` with the `Tag` enum and `FORMAT_VERSION`
+- [x] 2. Tags, versioning and scalars
+  - [x] 2.1 Create `tags.py` with the `Tag` enum and `FORMAT_VERSION`
     - _Requirements: 5.2, 5.4_
-  - [ ] 2.2 Create `codec.py` with `Encoder` and `Decoder` for `None`, `bool`, `int`, `float`, `str`, `bytes`
+  - [x] 2.2 Create `codec.py` with `Encoder` and `Decoder` for `None`, `bool`, `int`, `float`, `str`, `bytes`
     - Zigzag varint for `int`; `int` and `bool` distinguishable
     - _Requirements: 1.1, 1.2, 5.1_
-  - [ ] 2.3 Unknown type raises `SerializationError` with the value path
+  - [x] 2.3 Unknown type raises `SerializationError` with the value path
     - _Requirements: 1.4_
-  - [ ] 2.4 Tests: scalar round trips, version rejection, unknown type message
+  - [x] 2.4 Tests: scalar round trips, version rejection, unknown type message
     - _Requirements: 1.1, 1.2, 1.4, 5.4, 5.5_
 
-- [ ] 3. Containers and time types
-  - [ ] 3.1 `list`, `tuple`, `dict`, `set`, `frozenset` with the depth limit
+- [x] 3. Containers and time types
+  - [x] 3.1 `list`, `tuple`, `dict`, `set`, `frozenset` with the depth limit
     - _Requirements: 1.1, 1.2, 1.5_
-  - [ ] 3.2 `datetime`, `date`, `timedelta`, `UUID`; naive datetime policy
+  - [x] 3.2 `datetime`, `date`, `timedelta`, `UUID`; naive datetime policy
     - _Requirements: 1.1, 1.3_
-  - [ ] 3.3 Tests: nested round trips, depth limit, naive datetime rejection
+  - [x] 3.3 Tests: nested round trips, depth limit, naive datetime rejection
     - _Requirements: 1.3, 1.5, 5.5_
 
-- [ ] 4. Registry-backed types
-  - [ ] 4.1 Create `registry.py`; `register_enum`, `register_flattenable`, `register_dataclass`
+- [x] 4. Registry-backed types
+  - [x] 4.1 Create `registry.py`; `register_enum`, `register_flattenable`, `register_dataclass`
     - _Requirements: 2.3, 2.6_
-  - [ ] 4.2 Extend `Flattenable` with `unflatten`; encode as tag plus dict
+  - [x] 4.2 Extend `Flattenable` with `unflatten`; encode as tag plus dict
     - _Requirements: 2.1, 2.2, 2.4_
-  - [ ] 4.3 Tests: enum and Flattenable round trips, unregistered tag on decode, dataclass helper
+  - [x] 4.3 Tests: enum and Flattenable round trips, unregistered tag on decode, dataclass helper
     - _Requirements: 2.1–2.4, 2.6_
 
-- [ ] 5. Exceptions
-  - [ ] 5.1 Add `RemoteError` and re-export `SerializationError` in `ccai/rpc/errors.py`
+- [x] 5. Exceptions
+  - [x] 5.1 Add `RemoteError` and re-export `SerializationError` in `ccai/rpc/errors.py`
     - _Requirements: 3.3_
-  - [ ] 5.2 Encode type name, message, args, traceback text; restricted type resolution on decode
+  - [x] 5.2 Encode type name, message, args, traceback text; restricted type resolution on decode
     - _Requirements: 3.1, 3.2, 3.5_
-  - [ ] 5.3 Attach `remote_traceback` and include it in `__str__`
+  - [x] 5.3 Attach `remote_traceback` and include it in `__str__`
     - _Requirements: 3.4_
-  - [ ] 5.4 Tests: known ccai type, built-in type, unknown type, traceback present, no import triggered
+  - [x] 5.4 Tests: known ccai type, built-in type, unknown type, traceback present, no import triggered
     - _Requirements: 3.1–3.5_
 
-- [ ] 6. References
-  - [ ] 6.1 Create `placeholder.py`; encode `ByRef` as a placeholder; strip `ByValue`
+- [x] 6. References
+  - [x] 6.1 Create `placeholder.py`; encode `ByRef` as a placeholder; strip `ByValue`
     - _Requirements: 4.1, 4.4_
-  - [ ] 6.2 Resolver parameter on `decode`; error without resolver
+  - [x] 6.2 Resolver parameter on `decode`; error without resolver
     - _Requirements: 4.2, 4.3_
-  - [ ] 6.3 Tests: placeholder round trip, resolver called with placeholder, missing resolver error
+  - [x] 6.3 Tests: placeholder round trip, resolver called with placeholder, missing resolver error
     - _Requirements: 4.1–4.4_
 
-- [ ] 7. Checkpoint - Ensure all tests pass
+- [x] 7. Checkpoint - Ensure all tests pass

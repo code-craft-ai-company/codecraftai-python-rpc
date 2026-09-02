@@ -39,6 +39,8 @@ reclaimed on the same code path as a slow one's.
 
 ### Design Decisions
 
+0. **Two small memories on the owner** — an expired reference leaves a tombstone so a later request gets `LeaseExpiredError` with the type and timing rather than an unknown-reference error, and a released object stays resolvable by its owner briefly so a reference returning home while its holder's release is in flight still resolves.
+
 1. **Bulk renewal on the heartbeat** — one message per interval regardless of reference count.
 2. **Server owns the duration** — the party that leaks is the one that should choose the
    policy; the client learns it at HELLO.

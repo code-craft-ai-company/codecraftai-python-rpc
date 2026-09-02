@@ -59,6 +59,8 @@ thread directly because it is trivial and must not queue behind slow callbacks.
 
 ### Design Decisions
 
+0. **Replies to notifications are dropped quietly** — PING, RELEASE and other notifications are answered by the peer; their correlation ids are remembered so the reply is discarded without a stray-reply warning.
+
 1. **Symmetric base class** — client and server sessions are the same machine; only HELLO
    direction and handler sets differ. This removes the duplicated code in the two current
    modules.

@@ -43,6 +43,8 @@ class definition. Payload fields are encoded with the Serialization feature's `e
 
 ### Design Decisions
 
+0. **Caller context is a message field** — the targeted requests carry a `context` dictionary field rather than a header extension bit; it keeps the header fixed and the codec uniform.
+
 1. **Fixed 24 byte header** — cheap to parse, and every routing decision the session makes needs
    only the header.
 2. **Per-request correlation id** — replies are matched to requests, not to threads. One thread

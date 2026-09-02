@@ -1,9 +1,8 @@
-
 """
 .. module:: looperqueue
     :platform: Darwin, Linux, Unix, Windows
-    :synopsis: Module that contains a :class:`LooperQueue` which provides a thread-safe queue for
-        for the :class:`Looper` and :class:`LooperPool`.
+    :synopsis: A thread-safe work queue coupling a list, a counting semaphore and a lock, shared by the
+               LooperPool producer and its Looper workers.
 
 .. moduleauthor:: Myron Walker <myron.walker@gmail.com>
 """
@@ -12,113 +11,93 @@ __author__ = "Myron Walker"
 __copyright__ = "Copyright 2025, Code Craft AI LLC"
 __credits__ = []
 
+from typing import Optional, Sequence
 
+import threading
 
-from threading import RLock, Semaphore
-
-from ccai.errors.exceptions import LooperError
+from ccai.rpc.errors import LooperError
 
 
 class LooperQueueShutdown:
     """
-        The :class:`LooperShutdown` object provides a mechanism to tell :class:`Looper` threads
-        the queue is shutdown and to exit.
+        Sentinel packet. A worker that pops one exits its loop.
     """
+
+    def __repr__(self) -> str:
+        return "LooperQueueShutdown()"
 
 
 class LooperQueue:
     """
-        The :class:`LooperQueue` provides an encapsulation of a queue, semaphore, and lock combination
-        to be utilized and passed as one object.  Makes it easy to share the queue, semaphore, and
-        lock between the :class:`LooperPool` and the :class:`Looper` threaded objects.
+        Thread-safe queue. The semaphore count always equals the number of packets appended and not
+        yet popped, which is what makes one wake-up per packet, and therefore shutdown, reliable.
     """
 
-
-    def __init__(self):
+    def __init__(self) -> None:
         self._queue = []
-        self._queue_available = Semaphore(value=0)
-        self._queue_lock = RLock()
-        self._queue_shutdown = None
+        self._available = threading.Semaphore(value=0)
+        self._lock = threading.RLock()
+        self._shutdown = False
         return
 
+    @property
+    def depth(self) -> int:
+        with self._lock:
+            return len(self._queue)
 
-    def push_work(self, packet: object):
+    @property
+    def is_shutdown(self) -> bool:
+        with self._lock:
+            return self._shutdown
+
+    def push_work(self, packet: object) -> int:
         """
-            Pushes a work packet for the :class:`LooperPool` threads to work on.
+            Appends one packet and signals one available packet. Returns the resulting depth.
         """
-        available = 0
-
-        self._queue_lock.acquire()
-        try:
-            if self._queue_shutdown is not None:
-                raise LooperError("The queue has been shutdown, no more work is allowed to be queued.") from None
-
+        with self._lock:
+            if self._shutdown:
+                raise LooperError("LooperQueue: the queue is shut down, no more work is allowed to be queued.")
             self._queue.append(packet)
-            self._queue_available.release()
+            depth = len(self._queue)
+        self._available.release()
+        return depth
 
-            available = len(self._queue)
-        finally:
-            self._queue_lock.release()
-
-        return available
-
-
-    def push_work_packets(self, packets: list):
+    def push_work_packets(self, packets: Sequence[object]) -> int:
         """
-            Pushes a list of work packets for the :class:`LooperPool` threads to work on.
+            Appends every packet and signals once per packet. Returns the resulting depth.
         """
-
-        available = 0
-
-        self._queue_lock.acquire()
-        try:
-            if self._queue_shutdown is not None:
-                raise LooperError("The queue has been shutdown, no more work is allowed to be queued.") from None
-
+        packets = list(packets)
+        with self._lock:
+            if self._shutdown:
+                raise LooperError("LooperQueue: the queue is shut down, no more work is allowed to be queued.")
             self._queue.extend(packets)
-            self._queue_available.release()
+            depth = len(self._queue)
+        for _ in packets:
+            self._available.release()
+        return depth
 
-            available = len(self._queue)
-        finally:
-            self._queue_lock.release()
-
-        return available
-
-
-    def pop(self):
+    def pop(self, timeout: Optional[float] = None) -> Optional[object]:
         """
-            Remove the next work packet from the :class:`LooperQueue` work queue.
+            Blocks until a packet is available and returns it in first-in, first-out order. With a
+            timeout, returns ``None`` when nothing became available in time.
         """
-        packet= None
+        acquired = self._available.acquire(timeout=timeout) if timeout is not None else self._available.acquire()
+        if not acquired:
+            return None
+        with self._lock:
+            if len(self._queue) == 0:
+                return None
+            return self._queue.pop(0)
 
-        self._queue_available.acquire()
-        self._queue_lock.acquire()
-        try:
-            if len(self._queue) > 0:
-                packet = self._queue.pop(0)
-
-                if self._queue_shutdown is not None:
-                    self._queue_shutdown.release()
-        finally:
-            self._queue_lock.release()
-
-        return packet
-
-
-    def shutdown_and_wait(self, notices):
+    def shutdown(self, worker_count: int) -> None:
         """
-            Starts the queue shutdown and waits for the last work time to be removed
-            from the queue.
+            Marks the queue shut down and appends one sentinel per worker, signalling each, so every
+            blocked worker wakes exactly once after the pending work drains.
         """
-
-        self._queue_lock.acquire()
-        try:
-            for _ in range(0, notices):
+        with self._lock:
+            self._shutdown = True
+            for _ in range(0, worker_count):
                 self._queue.append(LooperQueueShutdown())
-
-            wcount = (len(self._queue) - 1) * -1
-            self._queue_shutdown = Semaphore(value=wcount)
-        finally:
-            self._queue_lock.release()
-
+        for _ in range(0, worker_count):
+            self._available.release()
         return

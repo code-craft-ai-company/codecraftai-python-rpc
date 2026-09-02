@@ -47,6 +47,8 @@ receiving handler checks a flag on the message and suppresses the reply.
 
 ### Design Decisions
 
+0. **Lanes apply to one-way callbacks only** — an acknowledged call already serialises its caller, and a lane on an acknowledged call deadlocks a re-entrant chain that targets the same object (the nested call queues behind the outer call that is waiting for it). Notification bursts to one target stay ordered; acknowledged calls run on any free worker.
+
 1. **Lanes, not per-object threads** — ordering per target without unbounded thread creation
    and without blocking pool workers.
 2. **Ordered by default** — listeners almost always assume ordered events; opting out is

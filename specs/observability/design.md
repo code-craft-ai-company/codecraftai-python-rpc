@@ -39,6 +39,8 @@ and is a no-op elsewhere.
 
 ### Design Decisions
 
+0. **Wire trace logs the header only** — direction, type, code, correlation id and payload length per frame, never payload bytes, so credentials cannot reach a log.
+
 1. **Adapter, not per-call extras** — attributes are attached once per session and cannot be
    forgotten.
 2. **Context in a header extension, not the payload** — the receive thread can log the

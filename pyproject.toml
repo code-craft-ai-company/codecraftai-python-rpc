@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "codecraftai-python-rpc"
 description = "Code Craft AI - Python RPC Package"
-version = "1.0.1"
+version = "1.1.0"
 authors = ["Myron Walker <myron.walker@gmail.com>"]
 readme = "README.rst"
 license = "LicenseRef-CodeCraftAI-Dual-License"

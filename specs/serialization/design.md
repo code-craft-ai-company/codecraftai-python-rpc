@@ -46,6 +46,8 @@ back.
 
 ### Design Decisions
 
+0. **Already-registered objects encode as references** — an object the session has handed out by reference (the root service included) may be passed unwrapped again; the codec asks the session's reference table before refusing. Unregistered objects are still refused.
+
 1. **Own format instead of JSON or msgpack** — JSON loses `bytes`, `tuple` and `datetime`;
    msgpack adds a dependency. The type set is small and a tagged format is under 300 lines.
 2. **Closed set, loud failure** — an unregistered type raises at encode time with the path to

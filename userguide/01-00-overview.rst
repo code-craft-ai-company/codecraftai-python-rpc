@@ -21,26 +21,25 @@ The package depends only on ``codecraftai-foundations`` and the Python standard 
 Core pieces (``ccai.rpc``)
 ==========================
 
-- ``ccai.rpc.core.protocol`` - message framing constants (``MSG_TYPE_*``, ``REQ_CODE_*``,
-  ``REPLY_CODE_*``) and the message classes ``RequestPing``, ``RequestClose``,
-  ``RequestGetService``, ``RequestAttrGet``, ``RequestAttrSet``, ``RequestAttrDel``,
-  ``RequestCall`` and ``ReplyPong``.  Every message starts with a fixed prefix of message type,
-  message code and the origin identifier of the sender.
-- ``ccai.rpc.core.duplexsocketio.DuplexSocketIO`` - wraps a connected socket and provides
-  length-prefixed ``transmit_message`` and ``receive_message`` operations.
-- ``ccai.rpc.core.duplexclientsession.DuplexClientSession`` and
-  ``ccai.rpc.core.duplexserversession.DuplexServerSession`` - the per-connection session objects.
-  They own the receive thread, the transmit thread and the dispatch pool, and they correlate
-  replies back to the waiting caller by thread identity.
+- ``ccai.rpc.core.protocol`` - the 24 byte header, framing helpers and one message class per request,
+  reply and exception, all registered by type and code and round-tripped by ``pack`` and ``unpack``.
+- ``ccai.rpc.core.transport`` - the ``Transport`` interface, ``DuplexSocketIO`` over a socket, an
+  in-process socket-pair transport for tests and a fault-injecting wrapper.
+- ``ccai.rpc.core.serialization`` - the tagged, pickle-free codec with a closed by-value type set.
+- ``ccai.rpc.core.session`` - ``DuplexClientSession`` and ``DuplexServerSession``, the per-connection
+  objects owning the receive, transmit, heartbeat and dispatch threads and correlating replies by
+  request id.
 - ``ccai.rpc.core.looperqueue.LooperQueue``, ``ccai.rpc.core.looper.Looper`` and
   ``ccai.rpc.core.looperpool.LooperPool`` - the thread pool primitives.  A ``Looper`` subclass
   overrides ``loop`` to process one work packet; a ``LooperPool`` grows the number of loopers
   between ``min_loopers`` and ``max_loopers`` as the queue depth passes ``highwater``.
-- ``ccai.rpc.core.proxy.ByRef`` and ``ByValue`` - wrappers that declare passing semantics, and
-  ``ccai.rpc.core.flattenable.Flattenable`` - the protocol a by-value object implements.
+- ``ccai.rpc.core.proxy`` - ``ByRef`` and ``ByValue``, the owner-side reference table with leases, and
+  ``RemoteProxy``; ``ccai.rpc.core.flattenable.Flattenable`` is the protocol a by-value object implements.
+- ``ccai.rpc.aspects.AspectsRpc`` - every tunable in one frozen object, with per-proxy views and a
+  per-thread scope.
 - ``ccai.rpc.rpcsocketserver.RpcSocketServer`` and ``ccai.rpc.rpcsocketclient.RpcSocketClient`` -
   the entry points.  A server is created with the service protocol type it exposes and the endpoint
   it listens on; a client connects to that endpoint and obtains the remote service object.
 
-See :ref:`02-00-getting-started` for usage examples, and the ``tasks.md`` in each feature folder under ``specs/`` for the current state of
-the implementation.
+See :ref:`02-00-getting-started` for usage examples and the design documents under ``specs/`` for the
+reasoning behind each mechanism.
