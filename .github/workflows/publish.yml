@@ -22,11 +22,20 @@
 
 name: Publish
 
+# PUBLISHING IS DISABLED FOR THIS REPOSITORY FOR NOW.
+#
+# The package is early work in progress (see specs/tasks.md) and is not ready
+# to be consumed from the package repository. The automatic publish on a
+# version change has been removed; only a deliberate manual run from the
+# Actions tab can publish. To re-enable automatic publishing, restore the
+# push trigger used by the sibling codecraftai-* repositories:
+#
+#   push:
+#     branches: [main]
+#     paths:
+#       - pyproject.toml
+
 on:
-  push:
-    branches: [main]
-    paths:
-      - pyproject.toml
   workflow_dispatch:
     inputs:
       force:

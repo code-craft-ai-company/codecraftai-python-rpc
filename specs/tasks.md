@@ -60,7 +60,7 @@ Tasks that address gaps or issues that must be resolved.
 ### 🔴 TASK-008: Make message packing work
 **Status:** Open
 **Requirements:** REQ-003
-**Description:** `FMT_MSG_UUID` is built as 36 separate `s` fields, so `pack_prefix` fails when given a string origin. Use a `36s` field and encode the origin as bytes. Add payload packing for attribute name, attribute value and call arguments.
+**Description:** `FMT_MSG_UUID` is built as 36 separate `s` fields, so `pack_prefix` fails with `struct.error` for every message (verified). Use a `36s` field and encode the origin as bytes. Every `pack` method packs only the prefix; attribute names, attribute values and call arguments are never serialized. There is no exception message class for `MSG_TYPE_EXCEPTION`, and `ReplyPong` is the only reply class, so get-service, attribute and call operations have no way to answer.
 
 ### 🔴 TASK-009: Implement message unpacking
 **Status:** Open
@@ -77,12 +77,12 @@ Tasks that address gaps or issues that must be resolved.
 ### 🔴 TASK-011: Fix DuplexSocketIO send and receive paths
 **Status:** Open
 **Requirements:** REQ-004
-**Description:** `transmit_message` sends slices of the internal send buffer rather than of `msg_bytes`. `receive_message` passes the unpack tuple to `BytesIO` and loops on the tuple rather than the integer size.
+**Description:** `transmit_message` sends slices of the internal (zeroed) send buffer rather than of `msg_bytes`, never advances the slice index, and does not accept the `response_timeout` keyword the sessions pass it. Verified: transmitting `b"hello"` puts five null bytes on the wire. `receive_message` passes the unpack tuple to `BytesIO` and loops on the tuple rather than the integer size, so it raises `TypeError` on any frame, and it reads the 8 byte header with a single `recv` that may return short.
 
 ### 🔴 TASK-012: Start session threads
 **Status:** Open
 **Requirements:** REQ-006
-**Description:** `DuplexClientSession.start` and `DuplexServerSession.start` create the receive and transmit threads but never call `start()` on them, then wait on a gate that only the thread sets.
+**Description:** `DuplexClientSession.start` and `DuplexServerSession.start` create the receive and transmit threads but never call `start()` on them, then wait on a gate that only the thread sets, so the first call to `start` blocks forever. This also means `RpcSocketServer.serve_forever` hangs on its first accepted connection. Neither session has a `stop` or `close`, and `_running` is never set back to `False`.
 
 ### 🔴 TASK-013: Correlate replies to waiting callers
 **Status:** Open
@@ -92,7 +92,7 @@ Tasks that address gaps or issues that must be resolved.
 ### 🔴 TASK-014: Align dispatch looper signature with LooperPool
 **Status:** Open
 **Requirements:** REQ-008
-**Description:** `DuplexServerSession._receive_loop` calls `push_work(self, bytes_received)` but `LooperPool.push_work` accepts one packet. Package the session and bytes into a single packet, or give the looper the session at construction time.
+**Description:** `DuplexServerSession._receive_loop` calls `push_work(self, bytes_received)` but `LooperPool.push_work` accepts one packet, and `ServerDispatchLooper.loop(session, packet)` does not match `Looper.loop(packet)`. Package the session and bytes into a single packet, or give the looper the session at construction time. In the same looper, `struct.unpack_from` returns a tuple that is compared to an integer, so every message is reported as an unknown type, and `_process_reply` and `_process_exception` are missing `self`. Both sessions' transmit loops drain the outbound list with `pop()`, which sends messages last-in first-out.
 
 ## Object Passing Tasks
 
