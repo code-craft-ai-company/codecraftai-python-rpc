@@ -25,28 +25,107 @@ that are well design, cohesive, and easy to use and that provide rapid but stabl
 - Always prioritize the reuse of code from 'codecraftai-*' packages over rewriting functionality
 
 # Project Overview
-The `codecraftai-python-rpc` package is the remote procedure call (RPC) layer for
-the ccai suite. It exists because distributed automation needs an RPC library
-whose threading model and object-passing semantics are explicit and predictable.
-Objects that cross the wire are wrapped as `ByRef` or `ByValue` (`proxy.py`) so
-the caller declares whether a parameter is proxied back to its owner or flattened
-and copied, and every session multiplexes its socket across dedicated receive,
-transmit and dispatch threads so a callback from the far side never blocks the
-thread that is waiting on a reply.
+The `codecraftai-python-rpc` package is the remote procedure call (RPC) layer for the ccai suite.
+It exists because distributed automation needs an RPC library whose threading model and
+object-passing semantics are explicit and predictable. General purpose libraries such as `rpyc`
+proxy objects implicitly and run callbacks on whichever thread happens to be reading the socket,
+which makes long running automation hard to reason about and easy to deadlock. This package makes
+both decisions visible in the caller's code:
 
-The main abstractions live under `ccai.rpc.core`: the binary message framing and
-the request and reply message classes in `protocol.py`; the length-prefixed socket
-transport in `duplexsocketio.py`; the `DuplexClientSession` and
-`DuplexServerSession` objects that own a connection's threads; and the `Looper`,
-`LooperQueue` and `LooperPool` thread pool primitives used to dispatch inbound
-work. The `RpcSocketClient` and `RpcSocketServer` classes in `ccai.rpc` are the
-entry points a service and its consumers use. The package depends only on
-`codecraftai-errors` for its exception vocabulary.
+- Objects cross the wire only when wrapped as `ByRef` (proxied back to the owning process) or
+  `ByValue` (flattened and copied). Nothing is implicitly pickled or implicitly proxied.
+- Every connection is owned by a session that runs a dedicated receive thread, a dedicated
+  transmit thread and a pool of dispatch workers, so a callback from the far side never executes on
+  the thread that is blocked waiting for a reply.
 
-This package is early, in-progress work. The threading primitives and protocol
-vocabulary are in place; request dispatch, object proxying and serialization are
-not yet complete. Consult `specs/tasks.md` before starting work so effort goes
-toward the open tasks rather than re-doing finished ones.
+The package follows the interop conventions of the suite: behaviour is controlled by an `Aspects`
+object passed by the caller, timeouts are expressed the way `codecraftai-waiting` expresses them,
+and exceptions come from `codecraftai-errors`. The public entry points are `RpcSocketServer` and
+`RpcSocketClient` in `ccai.rpc`; everything else lives under `ccai.rpc.core`.
+
+The package is early, in-progress work. The work dispatch primitives and the protocol vocabulary
+exist; most features below are specified but not yet implemented. Each feature has its own folder
+under `specs/` containing `requirements.md`, `design.md` and `tasks.md`. Consult the feature's
+`tasks.md` before starting work so effort goes toward open tasks rather than re-doing finished ones.
+
+# Features
+Features are listed in the order a request travels and, roughly, the order they should be built.
+Each feature name is also its folder under `specs/`.
+
+## Work Dispatch (`specs/work-dispatch`)
+- `LooperQueue`, a thread-safe work queue coupling a list, a counting semaphore and a lock
+- `Looper`, a worker thread base class whose `loop` method processes one packet
+- `LooperPool`, a pool that grows from `min_loopers` to `max_loopers` as queue depth passes a high-water mark
+- Orderly shutdown that wakes every worker and waits for each to exit
+
+## Wire Protocol (`specs/wire-protocol`)
+- Length-prefixed framing with a fixed header of protocol version, message type, message code and correlation id
+- Request, reply and exception message types with one message class per operation
+- Symmetric `pack` and `unpack` so both ends route on typed messages rather than raw offsets
+- Version negotiation at connect time
+
+## Serialization (`specs/serialization`)
+- A documented set of types that pass by value, with no pickle on the default path
+- The `Flattenable` protocol for user types passed by value
+- Encoding of exceptions with type, message and remote traceback
+- Encoding of `ByRef` placeholders so references travel as ids, never as objects
+
+## Transport (`specs/transport`)
+- `DuplexSocketIO`, length-prefixed transmit and receive over a connected socket with complete-read guarantees
+- An in-process socket-pair transport for testing the full stack without a network
+- A transport interface that TLS and fault-injection wrappers can implement
+
+## Sessions (`specs/sessions`)
+- `DuplexClientSession` and `DuplexServerSession`, one per connection, owning the receive, transmit and dispatch threads
+- Request and reply correlation by per-request id, with per-call timeouts
+- Remote exception propagation with the remote traceback attached
+- Heartbeat and dead-peer detection, graceful close and explicit failure of outstanding calls on disconnect
+
+## Object Proxies (`specs/object-proxies`)
+- `ByRef` and `ByValue` wrappers that declare passing semantics at the call site
+- A proxy class that forwards attribute access, assignment, deletion and calls as protocol requests
+- A reference table on the owning side and release messages when a proxy is collected
+- Typed `get_service` so the returned proxy is usable by IDEs and type checkers
+
+## Callback Dispatch (`specs/callback-dispatch`)
+- Inbound requests, including callbacks on `ByRef` objects, executed on dispatch workers only
+- Ordering guarantees for callbacks on the same object
+- Re-entrancy: a callback that makes a remote call that calls back again must work
+- Fire-and-forget versus acknowledged callback delivery
+
+## Leases (`specs/leases`)
+- Reference leases renewed in bulk on the heartbeat, so references held by a dead client are reclaimed
+- Session leases derived from the same heartbeat
+- Lapse callbacks so a service can reset a resource when its holder disappears
+- Duration-based expiry computed on the owner's clock, with a grace period
+
+## Aspects (`specs/aspects`)
+- `AspectsRpc`, derived from `ccai.aspects.Aspects`, carrying connect, call, heartbeat, lease and pool parameters
+- Session defaults with per-call override through a `with_aspects` proxy view
+- Caller deadlines carried in the request header so the server can abandon abandoned work
+- `AspectsRpc` as the first `Flattenable` by-value type
+
+## Entry Points (`specs/entry-points`)
+- `RpcSocketServer` created with a service instance and an endpoint, with `serve_forever` and `stop`
+- `RpcSocketClient` created with a service protocol type and an endpoint, with retrying `connect`
+- Service registration so get-service answers with a reference to the served object
+- Clean seams for discovery packages to supply endpoints
+
+## Long-Running Calls (`specs/long-running-calls`)
+- Asynchronous calls returning a future, so a caller need not block a thread for minutes
+- Cancellation of an outstanding call, honoured cooperatively on the server
+- Progress callbacks for operations that report partial completion
+
+## Observability (`specs/observability`)
+- Structured logging of connect, disconnect and each request with duration and outcome
+- Session ids and caller context that travel with each request and appear in every log line
+- Thread names that identify session and role
+- An optional wire-level trace for protocol debugging
+
+## Security (`specs/security`)
+- TLS with certificate verification as a transport wrapper
+- A shared-secret or token handshake at connect time
+- No arbitrary-code deserialization path
 
 # Testing Conventions
 The 'codecraftai-python-rpc' package repository utilizes the 'unittest' framework in order to test the functionality of the code.

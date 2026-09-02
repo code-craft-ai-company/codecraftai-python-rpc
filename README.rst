@@ -34,7 +34,7 @@ Status
 
 This package is early, in-progress work.  The threading primitives and the protocol vocabulary are in
 place, but the request dispatch, object proxying and serialization paths are not yet complete.  See
-``specs/tasks.md`` for what is done and what remains.
+the ``tasks.md`` in each feature folder under ``specs/`` for what is done and what remains.
 
 Code Organization
 =================
