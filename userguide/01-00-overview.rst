@@ -42,5 +42,5 @@ Core pieces (``ccai.rpc``)
   the entry points.  A server is created with the service protocol type it exposes and the endpoint
   it listens on; a client connects to that endpoint and obtains the remote service object.
 
-See :ref:`02-00-getting-started` for usage examples, and ``specs/tasks.md`` for the current state of
+See :ref:`02-00-getting-started` for usage examples, and the ``tasks.md`` in each feature folder under ``specs/`` for the current state of
 the implementation.
