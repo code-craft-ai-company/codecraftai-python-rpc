@@ -46,8 +46,9 @@ and exceptions come from `ccai.errors`, both provided by `codecraftai-foundation
 Every feature below is implemented and covered by the test suite under `source/tests`. Each feature
 has its own folder under `specs/` containing `requirements.md`, `design.md` and `tasks.md`; the design
 documents record the decisions that changed during implementation, so read them before changing a
-mechanism. The full-stack tests run over an in-process socket pair (`tests/helpers.py`) and over TCP
-on localhost (`test_entry_points.py`).
+mechanism. The full-stack tests run over an in-process socket pair (`tests/helpers.py`), over TCP on
+localhost (`test_entry_points.py`), and against a server in a separate Python process
+(`test_crossprocess.py`, which launches `crossprocess_server.py`).
 
 # Features
 Features are listed in the order a request travels and, roughly, the order they should be built.
