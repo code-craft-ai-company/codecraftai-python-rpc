@@ -63,7 +63,7 @@ pool lives as long as the connection.
    sessions that live for the whole connection.
 5. **Names everywhere** — every thread is named `<group>-<index>`, and `describe` exposes the
    pool state, because thread dumps are the primary tool for diagnosing hung automation.
-6. **Exceptions from `codecraftai-errors`** — `LooperError` and `AbstractMethodError` are
+6. **Exceptions from `ccai.errors`** — `LooperError` and `AbstractMethodError` are
    reused rather than defining local types.
 
 ## Components and Interfaces

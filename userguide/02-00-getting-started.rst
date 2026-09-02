@@ -15,7 +15,7 @@ package repository.  For local development from a checkout:
     ./repository-setup/rehome-repository
     ./development/setup-environment
 
-Its only runtime dependency is ``codecraftai-errors``.  Once the virtual environment is set up the
+Its only runtime dependency is ``codecraftai-foundations``.  Once the virtual environment is set up the
 package imports directly through the ``python-env`` wrapper:
 
 .. code-block:: bash

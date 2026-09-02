@@ -4,12 +4,12 @@
 
 Add `ccai.rpc.aspects` and wire it into the client, server, session, proxy and dispatch code.
 Task 1 has no dependencies and can be done early; tasks 2 through 4 follow Sessions, Object
-Proxies and Callback Dispatch. Adds `codecraftai-interfaces` as a dependency.
+Proxies and Callback Dispatch. `ccai.aspects` ships in `codecraftai-foundations`, which is already a dependency.
 
 ## Tasks
 
 - [ ] 1. AspectsRpc
-  - [ ] 1.1 Add `codecraftai-interfaces` to `pyproject.toml`
+  - [x] 1.1 `ccai.aspects` is available through the existing `codecraftai-foundations` dependency
   - [ ] 1.2 Create `aspects.py` with `AspectsRpc`, `LoggingPattern`, validation, `replace`, `DEFAULT_RPC_ASPECTS`
     - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6_
   - [ ] 1.3 `Flattenable` implementation and registration (after Serialization task 4)

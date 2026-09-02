@@ -21,8 +21,8 @@ and Callback Dispatch and has no dependency on any other feature.
 - **LooperPool**: An owner of one `LooperQueue` and a list of `Looper` instances that starts
   `min_loopers` workers and adds workers up to `max_loopers` as demand rises.
 - **High-water mark**: The queue depth above which the pool starts an additional worker.
-- **LooperError**: The `codecraftai-errors` exception raised for misuse of these primitives.
-- **AbstractMethodError**: The `codecraftai-errors` exception raised when `Looper.loop` is not
+- **LooperError**: The `ccai.errors` exception raised for misuse of these primitives.
+- **AbstractMethodError**: The `ccai.errors` exception raised when `Looper.loop` is not
   overridden.
 
 ## Requirements

@@ -16,7 +16,7 @@ deliberate ways:
   A callback arriving from the far side is dispatched on a worker, so it can never deadlock the
   thread that is blocked waiting on a reply.
 
-The package depends only on ``codecraftai-errors`` and the Python standard library.
+The package depends only on ``codecraftai-foundations`` and the Python standard library.
 
 Core pieces (``ccai.rpc``)
 ==========================

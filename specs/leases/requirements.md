@@ -21,7 +21,7 @@ Proxies and provides the primitive that resource checkout in higher packages bui
   tolerates a missed heartbeat.
 - **Lapse callback**: A callable the owning service registers to be invoked when a reference
   expires.
-- **LeaseExpiredError**: The `codecraftai-errors` exception raised when a request names an
+- **LeaseExpiredError**: The `ccai.errors` exception raised when a request names an
   expired reference.
 
 ## Requirements

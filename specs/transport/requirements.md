@@ -17,7 +17,7 @@ Protocol feature.
 - **SocketPairTransport**: A `Transport` pair connected in-process through `socket.socketpair`.
 - **Complete read**: Reading exactly the number of bytes a frame announces, looping over partial
   reads, and failing if the peer closes mid-frame.
-- **TransportClosedError**: The `codecraftai-errors` exception raised when an operation is
+- **TransportClosedError**: The `ccai.errors` exception raised when an operation is
   attempted on a closed transport or the peer closed the connection.
 - **Fault injector**: A `Transport` wrapper that drops, delays or corrupts frames for tests.
 

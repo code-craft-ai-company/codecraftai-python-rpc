@@ -38,7 +38,7 @@ timestamps are never sent, so clock skew cannot affect it.
 ### Design Decisions
 
 1. **Derive from `ccai.aspects.Aspects`** — the minimal base keeps this package's dependency at
-   `codecraftai-interfaces` rather than `codecraftai-interop`, matching the kubernetes and
+   `codecraftai-foundations` rather than `codecraftai-interop`, matching the kubernetes and
    libvirt packages.
 2. **Frozen** — defaults are module constants shared by every call; mutation would be a
    cross-call bug. `replace` provides the ergonomic path to variants.

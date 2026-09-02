@@ -22,7 +22,7 @@ Dispatch, Leases and the Entry Points.
 - **RemoteProxy**: The far-side stand-in that forwards attribute access, assignment, deletion
   and calls to the owner as requests.
 - **Service proxy**: The `RemoteProxy` for the root service object, returned by `get_service`.
-- **UnknownReferenceError**: The `codecraftai-errors` exception raised when a request names a
+- **UnknownReferenceError**: The `ccai.errors` exception raised when a request names a
   reference id the owner does not hold.
 
 ## Requirements

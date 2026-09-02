@@ -58,7 +58,7 @@ class definition. Payload fields are encoded with the Serialization feature's `e
 7. **Version in every header** — the HELLO exchange picks the version, but carrying it on every
    message makes a stray frame from the wrong peer detectable.
 8. **`struct` only** — no third-party framing library; the format is simple enough that
-   `struct` keeps the dependency list at `codecraftai-errors`.
+   `struct` keeps the dependency list at `codecraftai-foundations`.
 
 ## Components and Interfaces
 

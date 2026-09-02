@@ -17,7 +17,7 @@ Serialization.
   returns an identity or raises.
 - **Identity**: A string naming the authenticated peer, attached to the session and the call
   context.
-- **UnauthorizedError**: The `codecraftai-errors` exception raised when authentication fails.
+- **UnauthorizedError**: The `ccai.errors` exception raised when authentication fails.
 
 ## Requirements
 

@@ -8,7 +8,7 @@ rather than what it does: connection retries, call timeouts, heartbeat and lease
 dispatch pool sizing and logging. It is passed by the caller, defaults at the session level,
 and can be overridden per call. Because timeouts also matter to the far side, the caller's
 deadline travels in the request so the server can abandon work the caller has given up on. The
-feature derives from `ccai.aspects.Aspects` in `codecraftai-interfaces` and is consumed by
+feature derives from `ccai.aspects.Aspects` in `codecraftai-foundations` and is consumed by
 every other feature that has a tunable.
 
 ## Glossary

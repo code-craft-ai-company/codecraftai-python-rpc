@@ -86,16 +86,18 @@ job files that are used to enable the use of configuration as code to create jen
 ------------------------
 The *packages* folder contains the python code that makes up any python packages created by the project.  The packages
 folder contains a folder 'ccai' which is the root namespace package for all Code Craft AI projects.  The next folder
-under the 'ccai' folder is generally named after the package itself.  For example, for the 'codecraftai-errors'
-distribution package.  There will be a folder 'source/packages/ccai/errors'.  The 'source/packages/ccai' is a
-namespace package so it does not contain an '__init__.py' file.   The next folder down, in this case the
-'source/packages/ccai/errors' folder, is the first folder that would contain a '__init__.py' file.
+under the 'ccai' folder is generally named after the package itself.  For example, the 'codecraftai-networking'
+distribution package provides the folder 'source/packages/ccai/networking'.  A distribution may also provide several
+subpackages: 'codecraftai-foundations' provides 'ccai/errors', 'ccai/interfaces', 'ccai/waiting', 'ccai/aspects' and
+'ccai/bases'.  The 'source/packages/ccai' is a namespace package so it does not contain an '__init__.py' file.   The
+next folder down, for example the 'source/packages/ccai/networking' folder, is the first folder that would contain a
+'__init__.py' file.
 
 When you have a root namespace package, such as the 'ccai' package.  Then when you install different python
-distribution packages such as 'codecraftai-errors' and 'codecraftai-foundation'.  The packages install into the common
+distribution packages such as 'codecraftai-foundations' and 'codecraftai-networking'.  The packages install into the common
 namespace alongside each other in the virtual environment like:
 
-    '.env/lib/<python-version>/site-packages/ccai/errors' and '.env/lib/<python-version>/site-packages/ccai/foundation'
+    '.env/lib/<python-version>/site-packages/ccai/errors' and '.env/lib/<python-version>/site-packages/ccai/networking'
 
 
 'source/site' Folder

@@ -20,7 +20,7 @@ is consumed by the Wire Protocol for payloads and by Object Proxies for values c
 - **Type registry**: The table mapping a type tag to the encoder and decoder for that type.
 - **Codec**: The pair of `encode` and `decode` functions that turn a Python value into bytes
   and back.
-- **SerializationError**: The `codecraftai-errors` exception raised when a value cannot be encoded
+- **SerializationError**: The `ccai.errors` exception raised when a value cannot be encoded
   or decoded.
 
 ## Requirements

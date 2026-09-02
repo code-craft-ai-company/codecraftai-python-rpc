@@ -24,7 +24,7 @@ evolve without silently misreading frames.
   by the Serialization feature.
 - **Message class**: A Python class representing one message code, with typed fields, a `pack`
   method and an `unpack` class method.
-- **ProtocolError**: The `codecraftai-errors` exception raised for malformed or unexpected
+- **ProtocolError**: The `ccai.errors` exception raised for malformed or unexpected
   messages.
 
 ## Requirements

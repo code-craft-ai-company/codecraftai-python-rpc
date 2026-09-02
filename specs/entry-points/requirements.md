@@ -17,7 +17,7 @@ Aspects and Transport.
 - **Endpoint**: A `(host, port)` tuple.
 - **Accept loop**: The server thread that accepts connections and starts a session for each.
 - **EndpointProvider**: A callable returning an endpoint, used so discovery can supply it lazily.
-- **ConnectionTimeout**: The `codecraftai-errors` exception raised when connection attempts are
+- **ConnectionTimeout**: The `ccai.errors` exception raised when connection attempts are
   exhausted.
 
 ## Requirements
