@@ -39,8 +39,8 @@ both decisions visible in the caller's code:
   the thread that is blocked waiting for a reply.
 
 The package follows the interop conventions of the suite: behaviour is controlled by an `Aspects`
-object passed by the caller, timeouts are expressed the way `codecraftai-waiting` expresses them,
-and exceptions come from `codecraftai-errors`. The public entry points are `RpcSocketServer` and
+object passed by the caller, timeouts are expressed the way `ccai.waiting` expresses them,
+and exceptions come from `ccai.errors`, both provided by `codecraftai-foundations`. The public entry points are `RpcSocketServer` and
 `RpcSocketClient` in `ccai.rpc`; everything else lives under `ccai.rpc.core`.
 
 The package is early, in-progress work. The work dispatch primitives and the protocol vocabulary
