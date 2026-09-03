@@ -101,6 +101,15 @@ class TestDuplexSocketIO(unittest.TestCase):
             self.left.receive_frame()
         return
 
+    def test_close_after_peer_close_releases_the_socket(self) -> None:
+        self.left.close()
+        with self.assertRaises(TransportClosedError):
+            self.right.receive_frame()          # marks the transport closed on the error path
+        self.assertFalse(self.right.is_open)
+        self.right.close()                      # must still release the descriptor
+        self.assertEqual(self.right.sock.fileno(), -1)
+        return
+
     def test_addresses_are_tuples(self) -> None:
         self.assertIsInstance(self.left.local_address, tuple)
         self.assertEqual(len(self.left.remote_address), 2)

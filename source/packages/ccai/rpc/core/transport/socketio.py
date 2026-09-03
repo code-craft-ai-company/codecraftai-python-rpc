@@ -32,6 +32,7 @@ class DuplexSocketIO(Transport):
         self._send_lock = threading.Lock()
         self._max_message_size = max_message_size
         self._open = True
+        self._released = False
         self._pending = bytearray()      # bytes of the frame currently being read, kept across timeouts
         self._pending_size = None
         try:
@@ -109,9 +110,14 @@ class DuplexSocketIO(Transport):
         return
 
     def close(self) -> None:
-        if not self._open:
-            return
+        """
+            Closes the socket. Safe to call more than once, and it always releases the descriptor even when
+            an earlier send or receive failure already marked the transport closed.
+        """
         self._open = False
+        if self._released:
+            return
+        self._released = True
         try:
             self._sock.shutdown(socket.SHUT_RDWR)
         except OSError:
