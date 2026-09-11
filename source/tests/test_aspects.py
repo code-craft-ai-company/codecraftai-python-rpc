@@ -86,7 +86,8 @@ class TestOverrides(unittest.TestCase):
     def test_deadline_reaches_the_service(self) -> None:
         remaining = self.svc.rpc_with_aspects(FAST.replace(completion_timeout=2.0)).remaining()
         self.assertIsNotNone(remaining)
-        self.assertLess(remaining, 2.0)
+        # Coarse clocks (Windows) can report the full budget when the call is fast.
+        self.assertLessEqual(remaining, 2.0)
         self.assertGreater(remaining, 1.0)
         return
 

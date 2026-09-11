@@ -95,7 +95,10 @@ class TestCancellation(unittest.TestCase):
 
     def test_sync_timeout_sends_cancel(self) -> None:
         before = self.pair.server.counters["requests_received"]
-        with self.assertRaises(CompletionTimeout):
+        # The client's completion timeout and the deadline the service enforces
+        # are the same instant, so either side can win the race: a local
+        # CompletionTimeout, or the service's own CancelledError reply.
+        with self.assertRaises((CompletionTimeout, CancelledError)):
             self.svc.rpc_with_aspects(FAST.replace(completion_timeout=0.2)).slow_loop(50, 0.05)
         time.sleep(0.2)
         # a CANCEL request reached the server on top of the call itself

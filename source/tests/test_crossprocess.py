@@ -5,6 +5,7 @@
 """
 
 import os
+import platform
 import pathlib
 import subprocess
 import sys
@@ -68,7 +69,10 @@ class TestCrossProcess(unittest.TestCase):
     def test_service_runs_in_another_process(self) -> None:
         remote_pid = self.service.pid()
         self.assertNotEqual(remote_pid, os.getpid())
-        self.assertEqual(remote_pid, self.process.pid)
+        if platform.system() != "Windows":
+            # A Windows venv python.exe is a launcher that runs the interpreter
+            # as a child, so the announced pid is the launcher's child there.
+            self.assertEqual(remote_pid, self.process.pid)
         return
 
     def test_call_and_known_exception(self) -> None:
