@@ -135,10 +135,13 @@ class TestHeartbeat(unittest.TestCase):
 
     def test_idle_session_sends_pings(self) -> None:
         with SessionPair() as pair:
-            before = pair.server.counters["requests_received"]
+            # A side only pings when it has sent nothing for a heartbeat interval, and replying to the peer's ping
+            # counts as sending, so in steady state either side can be the one that pings.  Count both directions.
+            before = pair.server.counters["requests_received"] + pair.client.counters["requests_received"]
             # Several heartbeat intervals, so a slow runner cannot miss the first ping.
             time.sleep(2.0)
-            self.assertGreater(pair.server.counters["requests_received"], before)
+            after = pair.server.counters["requests_received"] + pair.client.counters["requests_received"]
+            self.assertGreater(after, before)
         return
 
     def test_inactivity_tears_down_and_fails_waiters(self) -> None:

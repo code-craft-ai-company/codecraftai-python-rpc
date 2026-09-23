@@ -150,6 +150,7 @@ class DuplexSessionBase:
         self._running = False
         self._closing = False
         self._closed = False
+        self._closed_event = threading.Event()
         self._close_reason: Optional[BaseException] = None
         self._waiters: Dict[uuid.UUID, Waiter] = {}
         self._quiet_replies: Dict[uuid.UUID, float] = {}     # correlation ids of notifications whose replies are dropped silently
@@ -226,7 +227,12 @@ class DuplexSessionBase:
         return thread
 
     def close(self, timeout: Optional[float] = 5.0) -> None:
-        if self._closed or self._closing:
+        if self._closed:
+            return
+        if self._closing:
+            # Another thread is already tearing the session down (for example after the peer closed it); wait for
+            # that teardown so the session is closed when this call returns.
+            self._wait_for_teardown(timeout)
             return
         if self._running and self._transport.is_open:
             try:
@@ -235,6 +241,22 @@ class DuplexSessionBase:
             except Exception:  # noqa: BLE001 - closing anyway
                 pass
         self._teardown(SessionClosedError("session {} closed locally".format(self._short)), timeout=timeout)
+        # The peer can answer RequestClose by closing its end, which starts a teardown on another thread before ours
+        # and makes ours return early; wait for whichever teardown is running to finish.
+        self._wait_for_teardown(timeout)
+        return
+
+    def _wait_for_teardown(self, timeout: Optional[float]) -> None:
+        """
+            Waits for a teardown that is running on another thread to finish.  Threads owned by this session do not
+            wait, because the teardown joins them.
+
+            :param timeout: The maximum number of seconds to wait, or None to wait without a limit.
+        """
+        current_name = threading.current_thread().name
+        owned_by_session = current_name.startswith("rpc-{}-".format(self.role)) and self._short in current_name
+        if not owned_by_session:
+            self._closed_event.wait(timeout)
         return
 
     def _teardown(self, reason: BaseException, timeout: Optional[float] = 5.0) -> None:
@@ -269,6 +291,7 @@ class DuplexSessionBase:
         with self._lock:
             self._running = False
             self._closed = True
+            self._closed_event.set()
         for sink in list(self._metrics_sinks):
             try:
                 sink(self.session_id, dict(self.counters))
