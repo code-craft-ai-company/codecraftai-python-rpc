@@ -9,7 +9,7 @@ import time
 from typing import Optional
 
 from ccai.rpc.aspects import AspectsRpc
-from ccai.rpc.core.proxy.wrappers import by_ref, concurrent_callbacks, oneway
+from ccai.rpc.core.proxy.wrappers import by_ref, concurrent_callbacks
 from ccai.rpc.core.session import DuplexClientSession, DuplexServerSession
 from ccai.rpc.core.transport import create_socketpair_transports
 

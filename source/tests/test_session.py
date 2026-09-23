@@ -147,7 +147,6 @@ class TestHeartbeat(unittest.TestCase):
         try:
             pair.server._heartbeat.stop()
             pair.server._running = False          # server goes silent: no pings, no replies
-            svc = pair.proxy() if False else None
             deadline = time.monotonic() + 3
             while pair.client.is_running and time.monotonic() < deadline:
                 time.sleep(0.05)

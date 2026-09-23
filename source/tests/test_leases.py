@@ -40,7 +40,6 @@ class TestLeases(unittest.TestCase):
             listener = Listener()
             svc = pair.proxy()
             svc.register(listener)
-            server_side_proxy = pair.service.listener
             # the server holds a proxy to the client's listener; stop the server renewing and let the client sweep
             pair.server._heartbeat.stop()
             time.sleep(0.7)
@@ -68,12 +67,15 @@ class TestLeases(unittest.TestCase):
         lapsed = []
         with SessionPair() as pair:
             pair.server.on_lease_lapse(lambda ref_id, obj, peer: lapsed.append(type(obj).__name__))
+            # Hold the proxy so it is not collected, which would release the reference before the close lapses it.
             helper = pair.proxy().get_helper()
             pair.client.close()
             deadline = time.monotonic() + 2
             while "Helper" not in lapsed and time.monotonic() < deadline:
                 time.sleep(0.02)
             self.assertIn("Helper", lapsed)
+            # The held proxy is still referenced here, so the lapse above came from the close, not from collection.
+            self.assertIsNotNone(helper)
         return
 
     def test_root_never_expires(self) -> None:

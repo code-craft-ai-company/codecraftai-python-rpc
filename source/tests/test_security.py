@@ -5,12 +5,10 @@
 import os
 import ssl
 import subprocess
-import sys
 import tempfile
 import unittest
-import uuid
 
-from ccai.rpc import ByRef, RpcSocketClient, RpcSocketServer, UnknownReferenceError, expose_private, mutable_service
+from ccai.rpc import RpcSocketClient, RpcSocketServer, UnknownReferenceError, expose_private, mutable_service
 from ccai.rpc.core.proxy.remoteproxy import RemoteProxy
 from ccai.rpc.security import tls_client_upgrader, tls_server_upgrader
 

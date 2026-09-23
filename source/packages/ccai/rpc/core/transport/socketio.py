@@ -38,6 +38,8 @@ class DuplexSocketIO(Transport):
         try:
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         except (OSError, AttributeError):
+            # TCP_NODELAY is an optional latency optimization; sockets that are not TCP (for example a
+            # socketpair) reject it and still work correctly without it.
             pass
         try:
             self._local = sock.getsockname()
@@ -121,10 +123,14 @@ class DuplexSocketIO(Transport):
         try:
             self._sock.shutdown(socket.SHUT_RDWR)
         except OSError:
+            # Best-effort; shutdown fails when the peer already disconnected, and the close below must
+            # still run to release the descriptor.
             pass
         try:
             self._sock.close()
         except OSError:
+            # Best-effort cleanup; a failure to close an already broken socket must not mask the error
+            # that caused the transport to be closed.
             pass
         return
 

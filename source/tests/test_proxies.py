@@ -13,16 +13,31 @@ from ccai.rpc.core.proxy.remoteproxy import RemoteProxy
 from ccai.rpc.core.proxy.table import ROOT_REFERENCE_ID, ReferenceTable
 from ccai.rpc.core.proxy.wrappers import ByRef, ByValue, by_ref, is_by_ref_type
 
-from helpers import FAST, Helper, Listener, SessionPair
+from helpers import Listener, SessionPair
 
 
 class ServiceProtocol(Protocol):
     value: int
 
-    def add(self, a: int, b: int = 0) -> int: ...
-    def echo(self, *args, **kwargs): ...
-    def fail(self, message: str = "boom"): ...
-    def get_helper(self): ...
+    def add(self, a: int, b: int = 0) -> int:
+        """
+            Returns the sum of ``a`` and ``b``.
+        """
+
+    def echo(self, *args, **kwargs):
+        """
+            Returns the positional and keyword arguments it was called with.
+        """
+
+    def fail(self, message: str = "boom"):
+        """
+            Raises a ``KeyError`` carrying ``message``.
+        """
+
+    def get_helper(self):
+        """
+            Returns the service's helper object.
+        """
 
 
 class TestWrappers(unittest.TestCase):

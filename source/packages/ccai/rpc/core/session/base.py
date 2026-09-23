@@ -18,10 +18,17 @@ import threading
 import time
 import uuid
 
-from ccai.rpc.aspects import AspectsRpc, DEFAULT_RPC_ASPECTS, LoggingPattern, current_aspects_override
+from ccai.rpc.aspects import AspectsRpc, DEFAULT_RPC_ASPECTS, current_aspects_override
 from ccai.rpc.errors import (
-    CancelledError, CompletionTimeout, InActivityTimeout, LeaseExpiredError, ProtocolError, SessionClosedError,
-    SessionError, TransportClosedError, UnauthorizedError, UnknownReferenceError,
+    CancelledError,
+    CompletionTimeout,
+    LeaseExpiredError,
+    ProtocolError,
+    SessionClosedError,
+    SessionError,
+    TransportClosedError,
+    UnauthorizedError,
+    UnknownReferenceError,
 )
 from ccai.rpc.core.dispatch.context import CallContext
 from ccai.rpc.core.dispatch.lanes import LaneTable
@@ -31,8 +38,14 @@ from ccai.rpc.core.looperqueue import LooperQueue
 from ccai.rpc.core.protocol.constants import HEADER_SIZE, PROTOCOL_VERSION, ExceptionCode, MessageType, RequestCode
 from ccai.rpc.core.protocol.header import MessageHeader
 from ccai.rpc.core.protocol.messages import (
-    REPLY_FOR_REQUEST, ExceptionMessage, Message, ReplyPing, RequestCancel, RequestClose, RequestProgress,
-    RequestRelease, RequestRenew,
+    REPLY_FOR_REQUEST,
+    ExceptionMessage,
+    Message,
+    ReplyPing,
+    RequestCancel,
+    RequestClose,
+    RequestProgress,
+    RequestRelease,
 )
 from ccai.rpc.core.proxy.cache import ProxyCache
 from ccai.rpc.core.proxy.remoteproxy import RemoteProxy
@@ -412,6 +425,8 @@ class DuplexSessionBase:
             try:
                 self.send_notification(RequestRelease(ref_id=ref_id))
             except SessionClosedError:
+                # The session closed after the is_running check; the owning side drops every reference
+                # held by a closed session, so there is nothing left to release.
                 pass
         return
 

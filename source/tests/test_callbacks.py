@@ -85,11 +85,35 @@ class TestCallbackThreads(unittest.TestCase):
         return
 
     def test_notify_returns_before_listener_runs(self) -> None:
-        proxy_listener = None
-        # the server-side proxy for the listener is what rpc_notify is called on; exercise the client-side equivalent
-        helper = self.svc.get_helper()
-        helper.double.rpc_notify(2) if hasattr(helper.double, "rpc_notify") else None
-        self.assertTrue(True)
+        # Service.fire_notify calls rpc_notify on the server-side proxy of this listener.  The listener is held at
+        # 'release' until the test sets it, so fire_notify can only return here if rpc_notify did not wait for the
+        # listener to run.  A notify that waited would hold the call past completion_timeout and fail the test.
+        release = threading.Event()
+        started = threading.Event()
+        finished = threading.Event()
+
+        class GatedListener(Listener):
+            def on_event(self, i):
+                started.set()
+                release.wait(timeout=10)
+                result = super().on_event(i)
+                finished.set()
+                return result
+        from ccai.rpc.core.proxy.wrappers import by_ref
+        by_ref(GatedListener)
+        listener = GatedListener()
+        self.svc.register(listener)
+
+        try:
+            self.svc.fire_notify(1)
+            self.assertFalse(finished.is_set(), "rpc_notify returned only after the listener had run")
+            self.assertTrue(started.wait(timeout=3), "the notified listener was never invoked")
+            self.assertEqual(listener.events, [])
+        finally:
+            release.set()
+
+        self.assertTrue(finished.wait(timeout=3), "the notified listener did not complete after being released")
+        self.assertEqual(listener.events, [0])
         return
 
     def test_call_context_visible_inside_callback(self) -> None:

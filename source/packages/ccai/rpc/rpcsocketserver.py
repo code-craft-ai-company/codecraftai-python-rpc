@@ -137,6 +137,8 @@ class RpcSocketServer:
                 try:
                     client_sock.close()
                 except OSError:
+                    # Best-effort cleanup; the session start failure was already logged above and a failure
+                    # to close the rejected socket must not stop the accept loop.
                     pass
         return
 
@@ -179,16 +181,21 @@ class RpcSocketServer:
             try:
                 self._listen_sock.shutdown(socket.SHUT_RDWR)
             except OSError:
+                # Best-effort; a listening socket is not connected on every platform, and the wake-up
+                # connection and close below still stop the accept loop.
                 pass
             if self._accept_thread is not None and self._accept_thread.is_alive() and self._bound is not None:
                 # a blocked accept() does not always wake on close; a throwaway connection guarantees it
                 try:
                     socket.create_connection(("127.0.0.1" if self._bound[0] in ("0.0.0.0", "") else self._bound[0], self._bound[1]), timeout=0.5).close()
                 except OSError:
+                    # The wake-up connection is only a nudge; a refused connection means the accept loop has
+                    # already stopped listening.
                     pass
             try:
                 self._listen_sock.close()
             except OSError:
+                # Best-effort cleanup; stopping must continue on to close the sessions.
                 pass
         for session in sessions:
             try:

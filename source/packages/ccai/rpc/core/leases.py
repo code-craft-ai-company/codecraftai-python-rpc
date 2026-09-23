@@ -24,7 +24,12 @@ class ILeaseAware(Protocol):
         Implemented by objects that want a callback when a peer holding a reference to them goes away.
     """
 
-    def on_lease_lapsed(self, peer_session_id: uuid.UUID) -> None: ...
+    def on_lease_lapsed(self, peer_session_id: uuid.UUID) -> None:
+        """
+            Called on a dispatch worker when the lease held by a peer on this object lapses.
+
+            :param peer_session_id: The session id of the peer whose lease on this object lapsed.
+        """
 
 
 __all__ = ["ILeaseAware"]

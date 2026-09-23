@@ -11,7 +11,7 @@ __author__ = "Myron Walker"
 __copyright__ = "Copyright 2025, Code Craft AI LLC"
 __credits__ = []
 
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 import builtins
 import datetime
@@ -357,6 +357,8 @@ def _build_exception(type_name: str, message: str, args_bytes: bytes, tb_text: s
             exc.remote_traceback = tb_text
             exc.remote_type_name = type_name
         except Exception:
+            # Best-effort annotation; some exception types reject new attributes, and the rebuilt
+            # exception is still the correct error to surface without the remote details attached.
             pass
     return exc
 

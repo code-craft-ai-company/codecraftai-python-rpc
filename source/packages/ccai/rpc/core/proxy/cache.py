@@ -10,7 +10,7 @@ __author__ = "Myron Walker"
 __copyright__ = "Copyright 2025, Code Craft AI LLC"
 __credits__ = []
 
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 import threading
 import uuid

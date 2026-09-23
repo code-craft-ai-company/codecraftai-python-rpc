@@ -2,7 +2,6 @@
     Unit tests for :mod:`ccai.rpc.core.transport`.
 """
 
-import socket
 import threading
 import unittest
 

@@ -2,13 +2,17 @@
     End-to-end tests through RpcSocketServer and RpcSocketClient over TCP on localhost.
 """
 
-import threading
 import time
 import unittest
 from typing import Protocol
 
 from ccai.rpc import (
-    AspectsRpc, ByRef, ConnectionTimeout, RemoteProxy, RpcSocketClient, RpcSocketServer, SessionError, UnauthorizedError,
+    ConnectionTimeout,
+    RemoteProxy,
+    RpcSocketClient,
+    RpcSocketServer,
+    SessionError,
+    UnauthorizedError,
     rpc_context_scope,
 )
 from ccai.rpc.security import shared_secret_authenticator
@@ -17,11 +21,30 @@ from helpers import FAST, Listener, Service
 
 
 class ServiceProtocol(Protocol):
-    def add(self, a: int, b: int = 0) -> int: ...
-    def fail(self, message: str = "boom"): ...
-    def register(self, listener) -> None: ...
-    def fire(self, count: int): ...
-    def caller_context(self): ...
+    def add(self, a: int, b: int = 0) -> int:
+        """
+            Returns the sum of ``a`` and ``b``.
+        """
+
+    def fail(self, message: str = "boom"):
+        """
+            Raises a ``KeyError`` carrying ``message``.
+        """
+
+    def register(self, listener) -> None:
+        """
+            Stores ``listener`` as the service's listener.
+        """
+
+    def fire(self, count: int):
+        """
+            Calls ``on_event`` on the registered listener ``count`` times and returns the results.
+        """
+
+    def caller_context(self):
+        """
+            Returns the caller context of the current remote call.
+        """
 
 
 class TestServer(unittest.TestCase):
