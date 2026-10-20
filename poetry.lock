@@ -5,19 +5,14 @@ name = "codecraftai-foundations"
 version = "1.2.0"
 description = "Code Craft AI - Foundations Package"
 optional = false
-python-versions = ">=3.10,<4.0"
+python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "codecraftai_foundations-1.2.0-py3-none-any.whl", hash = "sha256:e9b51072f6e298a96a296b15c40723bc13c164e897be7c9926e7d44bdc4bd923"},
-    {file = "codecraftai_foundations-1.2.0.tar.gz", hash = "sha256:11674f3efb804add4d794d521800a24bfb5808d3e2dda6b476480c299fc04b1f"},
+    {file = "codecraftai_foundations-1.2.0-py3-none-any.whl", hash = "sha256:e50480cdac988a316a304f018bf60ffce6037c0535990d68e6f8788b6617a01a"},
+    {file = "codecraftai_foundations-1.2.0.tar.gz", hash = "sha256:b38877de5882ec8ce5ce983a357d35c7c63f12b2c45535d5999ed57c0b5fe1a6"},
 ]
-
-[package.source]
-type = "legacy"
-url = "https://code-craft.ai/licensed-repository/simple"
-reference = "codecraftai"
 
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "e5c8ad99fcbaf85f9c864583e875328ae07f2fb4fd1c5bf61b3d8a3a19444c9d"
+content-hash = "e646b7f277fef1235cd9344275b14360686712ba2ad16e913223295dd307a9d5"
