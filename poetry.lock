@@ -2,14 +2,14 @@
 
 [[package]]
 name = "codecraftai-foundations"
-version = "1.2.0"
+version = "1.2.1"
 description = "Code Craft AI - Foundations Package"
 optional = false
 python-versions = "<4.0,>=3.10"
 groups = ["main"]
 files = [
-    {file = "codecraftai_foundations-1.2.0-py3-none-any.whl", hash = "sha256:e50480cdac988a316a304f018bf60ffce6037c0535990d68e6f8788b6617a01a"},
-    {file = "codecraftai_foundations-1.2.0.tar.gz", hash = "sha256:b38877de5882ec8ce5ce983a357d35c7c63f12b2c45535d5999ed57c0b5fe1a6"},
+    {file = "codecraftai_foundations-1.2.1-py3-none-any.whl", hash = "sha256:356854e3e41bced216362ac3beb811547f427106efd703fce29ee7eed03d8ec8"},
+    {file = "codecraftai_foundations-1.2.1.tar.gz", hash = "sha256:368e635cb1026f442dd155b813191a3e9f916c852595c6da19a68a853f6d2e55"},
 ]
 
 [metadata]
